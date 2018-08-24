@@ -157,7 +157,7 @@ void Init(void)
 
 	/* TCD */
 	EXPON_Init();
-	VALLOC_Init();
+    VALLOC_Init(12);
 	ENV_Init();
 	POLY_Init();
 	PARAM_WORK_Init();

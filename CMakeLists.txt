@@ -1,8 +1,15 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(c15_lpc_m0)
-add_executable(${PROJECT_NAME} "C15_M0.c")
+
+add_compile_options("-DCORE_M4")
+add_compile_options("-DC15_VERSION_4")
+
+file(GLOB_RECURSE SOURCES ./*.c)
+
+include_directories("nl_lib/nl_lib_com")
+include_directories("nl_lib/nl_lib_m4/src")
 
 
-file(GLOB_RECURSE LIBRARY_SOURCES *.c)
-add_compile_options(-Wall)
+add_executable(${PROJECT_NAME} ${SOURCES})
+
