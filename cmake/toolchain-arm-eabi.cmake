@@ -16,7 +16,7 @@ set ( CMAKE_LINKER ${TC_PATH}${CROSS_COMPILE}ld
 set ( CMAKE_OBJCOPY ${TC_PATH}${CROSS_COMPILE}objcopy
       CACHE FILEPATH "The toolchain objcopy command " FORCE )
 
-set ( EXE_LINKER_FLAGS "${EXE_LINKER_FLAGS} -T /home/paso/development/tools/src/ld/LPC4337.ld")
+set ( EXE_LINKER_FLAGS "${EXE_LINKER_FLAGS} -T ld/LPC4337_M4.ld")
 set ( EXE_LINKER_FLAGS "${EXE_LINKER_FLAGS} --specs=rdimon.specs -lrdimon")
 
 set ( CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
