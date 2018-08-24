@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.2)
 
 project(c15_lpc_m0)
 
+set ( CMAKE_TOOLCHAIN_FILE "cmake/toolchain-arm-eabi.cmake")
+
 add_compile_options("-DCORE_M4")
 add_compile_options("-DC15_VERSION_4")
 
