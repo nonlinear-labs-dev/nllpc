@@ -213,7 +213,6 @@ uint32_t SPI_DMA_SendReceive(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint8_t* rx_
 uint32_t SPI_DMA_SendReceiveBlocking(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint8_t* rx_buff, uint32_t len,
 		TransferCallback Callback)
 {
-	uint8_t isalloc = 0;
 	uint8_t ch;
 
 	if(SSPx == LPC_SSP0)
@@ -222,31 +221,20 @@ uint32_t SPI_DMA_SendReceiveBlocking(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint
 		ch = GPDMA_SPI_1_RX_CHANNEL;
 	else return 0;
 
-	if(rx_buff == NULL) {
-#warning "Get rid of malloc here"
+    if(rx_buff == NULL) {
+        while(1);
 //		rx_buff = (uint8_t*)malloc(sizeof(uint8_t)*len);
-		isalloc = 1;
-	}
+    }
 
-	if(SPI_DMA_Send(SSPx, tx_buff, len, NULL) == 0) {
-		if(isalloc)
+    if(SPI_DMA_Send(SSPx, tx_buff, len, NULL) == 0)
+		return 0;
 
-#warning "Get rid of malloc here"
-//			free(rx_buff);
+    if(SPI_DMA_Receive(SSPx, rx_buff, len, Callback) == 0)
 		return 0;
-	}
-	if(SPI_DMA_Receive(SSPx, rx_buff, len, Callback) == 0) {
-		if(isalloc)
-#warning "Get rid of malloc here"
-//			free(rx_buff);
-		return 0;
-	}
 
 	while(NL_GPDMA_ChannelBusy(ch))
 			NL_GPDMA_Poll();
-	if(isalloc)
-#warning "Get rid of malloc here"
-//		free(rx_buff);
+
 	return len;
 }
 

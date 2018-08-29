@@ -15,12 +15,12 @@
 #include "nl_tcd_valloc.h"
 
 
-static int32_t v_UnisonIdx[NUM_VOICES] = {};
+static int32_t v_UnisonIdx[NUM_VOICES] = {0};
 
-static int32_t v_KeyPos[NUM_VOICES] = {};
+static int32_t v_KeyPos[NUM_VOICES] = {0};
 
-static int32_t v_OscAPhase[NUM_VOICES] = {};
-static int32_t v_OscBPhase[NUM_VOICES] = {};
+static int32_t v_OscAPhase[NUM_VOICES] = {0};
+static int32_t v_OscBPhase[NUM_VOICES] = {0};
 
 static int32_t e_OscAPhase;
 static int32_t e_OscBPhase;
@@ -84,7 +84,7 @@ void POLY_Generate_VelTable(uint32_t curve)
 
 	for (i = 0; i <= i_max; i++)
 	{
-		velTable[i] = (uint32_t)( ( vel_max + vel_max / (b * i_max) ) / (1.0 + b * i) - vel_max / (b * i_max) + 0.5 );
+        velTable[i] = (uint32_t)( ( vel_max + vel_max / (b * i_max) ) / (1.f + b * i) - vel_max / (b * i_max) + 0.5f );
 	}
 }
 
@@ -330,7 +330,6 @@ void POLY_SetUnisonPhase(int32_t value)
 	if (e_UnisonVoices > 1)
 	{
 		uint32_t v;
-		int32_t out;
 
 		for (v = 0; v < NUM_VOICES; v++)
 		{
