@@ -5,10 +5,10 @@ project(c15_lpc_m0)
 set (CPU "cortex-m0")
 
 # Optimisation / CPU and Warnings
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -ggdb -mcpu=${CPU} -Wall")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -mcpu=${CPU} -Wall")
 
 # Autoremove unused code
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdata-sections -ffunction-sections -Wl,--gc-sections")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdata-sections -ffunction-sections -Wl,--gc-section")
 
 add_compile_options("-DCORE_M0")
 add_compile_options("-DC15_VERSION_4")

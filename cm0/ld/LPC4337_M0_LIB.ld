@@ -1,5 +1,5 @@
- GROUP(
- libgcc.a
- libc.a
- libm.a
- )
+GROUP(
+libgcc.a
+libc.a
+libm.a
+)

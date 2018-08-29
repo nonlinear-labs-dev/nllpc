@@ -35,7 +35,8 @@ void ESPI_ADC_Init(ESPI_ADC_T* adc, uint8_t cn, uint8_t port, uint8_t dev) {
 	adc->channel_num = cn;
 	adc->espi_port = port;
 	adc->espi_dev = dev;
-	adc->channel_val = (uint16_t*)malloc(cn*sizeof(uint16_t));
+#warning "Get rid of malloc here"
+//	adc->channel_val = (uint16_t*)malloc(cn*sizeof(uint16_t));
 
 	for(i=0; i< cn; i++)
 		adc->channel_val[i] = 0;

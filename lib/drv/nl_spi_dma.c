@@ -223,25 +223,30 @@ uint32_t SPI_DMA_SendReceiveBlocking(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint
 	else return 0;
 
 	if(rx_buff == NULL) {
-		rx_buff = (uint8_t*)malloc(sizeof(uint8_t)*len);
+#warning "Get rid of malloc here"
+//		rx_buff = (uint8_t*)malloc(sizeof(uint8_t)*len);
 		isalloc = 1;
 	}
 
 	if(SPI_DMA_Send(SSPx, tx_buff, len, NULL) == 0) {
 		if(isalloc)
-			free(rx_buff);
+
+#warning "Get rid of malloc here"
+//			free(rx_buff);
 		return 0;
 	}
 	if(SPI_DMA_Receive(SSPx, rx_buff, len, Callback) == 0) {
 		if(isalloc)
-			free(rx_buff);
+#warning "Get rid of malloc here"
+//			free(rx_buff);
 		return 0;
 	}
 
 	while(NL_GPDMA_ChannelBusy(ch))
 			NL_GPDMA_Poll();
 	if(isalloc)
-		free(rx_buff);
+#warning "Get rid of malloc here"
+//		free(rx_buff);
 	return len;
 }
 

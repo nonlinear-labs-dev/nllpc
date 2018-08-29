@@ -45,7 +45,8 @@ void (* const DBG_Pod_Off[8])(void) = {
 
 static void DBG_Callback(uint32_t status)
 {
-	free(to_send);
+#warning "Get rid of free here"
+//	free(to_send);
 	to_send = NULL;
 }
 
@@ -86,7 +87,8 @@ uint32_t DBG_Write(char* str)
 	if(to_send != NULL)
 		return 0;
 
-	to_send = (uint8_t*)malloc(len*sizeof(uint8_t));
+#warning "Get rid of malloc here"
+//	to_send = (uint8_t*)malloc(len*sizeof(uint8_t));
 	for(i=0; i<len; i++)
 		to_send[i] = (uint8_t)str[i];
 

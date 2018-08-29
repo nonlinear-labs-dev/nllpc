@@ -20,7 +20,9 @@ void ESPI_IO_Init(ESPI_IO_T* io,
 	io->espi_port   = port;
 	io->espi_dev    = dev;
 	io->io			= dir;
-	io->val = (uint8_t*)malloc(nreg*sizeof(uint8_t));
+
+#warning "Get rid of malloc here"
+//	io->val = (uint8_t*)malloc(nreg*sizeof(uint8_t));
 
 	int i;
 	for(i=0; i< nreg; i++)
