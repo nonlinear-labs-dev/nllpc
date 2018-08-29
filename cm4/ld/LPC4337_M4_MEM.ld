@@ -1,12 +1,3 @@
-/*
- * GENERATED FILE - DO NOT EDIT
- * (c) Code Red Technologies Ltd, 2008-2015
- * (c) NXP Semiconductors 2013-2015
- * Linker script memory definitions
- * Created from LinkMemoryTemplate
- * By LPCXpresso v7.6.2 [Build 326] [2015-02-02]  on Wed Mar 11 11:24:09 CET 2015)
-*/
-
 MEMORY
 {
   /* Define each memory region */
@@ -20,6 +11,3 @@ MEMORY
   __top_MFlashA512 = 0x1a000000 + 0x80000;
   __top_RamLoc40 = 0x10080000 + 0xa000;
   __top_RamLoc32 = 0x10000000 + 0x8000;
-
-
-
