@@ -25,9 +25,7 @@
 //------ Basic Parameters
 
 #define PARAM_ID_ENV_A_GAIN			  12	// bipolar
-#define PARAM_SEND_ID_ENV_A_GAIN	  51	// re-mapped für Renderer 59-4
 #define PARAM_ID_ENV_B_GAIN			  31	// bipolar
-#define PARAM_SEND_ID_ENV_B_GAIN	  52	// re-mapped für Renderer 59-4
 
 #define PARAM_ID_OSC_A_PITCH		  53
 #define PARAM_ID_OSC_A_KEY_TRK		  55
@@ -358,7 +356,6 @@
 #define PARAM_ID_SCALE_OFFSET_11	   323
 
 
-//------- Parameters of the Polyphonic TCD Generator
 
 #define PARAM_ID_ENV_A_ATTACK_TIME        0
 #define PARAM_ID_ENV_A_ATTACK_CURVE     294
@@ -414,13 +411,8 @@
 
 //----- Non-UI parameters
 
-#define PARAM_ID_OSC_A_PHASE_POLY      	400
-#define PARAM_ID_OSC_B_PHASE_POLY      	401
+#define PARAM_ID_UNISON_PHASE_POLY      400
 
-#define PARAM_ID_ENV_A        			402
-#define PARAM_ID_ENV_B         			403
-#define PARAM_ID_ENV_C         			404
-#define PARAM_ID_GATE          			405
 
 #define PARAM_ID_NOTEPITCH				406
 #define PARAM_ID_VOICE_PAN				407

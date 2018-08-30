@@ -126,8 +126,8 @@ void MSG_RefreshAddresses(void)
 
 void MSG_SelectVoice(uint32_t v)
 {
-	if ((multipleVoices == 1) || (v != oldVoice))						// avoid re-selecting the same single voice
-	{
+	// if ((multipleVoices == 1) || (v != oldVoice))						// avoid re-selecting the same single voice
+	// {
 		if (v > 0x3FFE)
 		{
 			v = 0x3FFE;														// clip to 14 bits (0x3FFF = All)
@@ -146,7 +146,7 @@ void MSG_SelectVoice(uint32_t v)
 		oldVoice = v;
 
 		multipleVoices = 0;
-	}
+	// }
 }
 
 
@@ -437,137 +437,6 @@ void MSG_SetTime(uint32_t t)
 
 
 /*****************************************************************************
-*	@brief  MSG_BendTime - changes the time/rate of the currently running
-*	segment
-*   @param  t: linear time (14 or 28 bits) as number of samples
-******************************************************************************/
-
-void MSG_BendTime(uint32_t t)
-{
-	if (t > 0x3FFF)															// needs 28-bit format
-	{
-		if (t > 0xFFFFFFF)
-		{
-			t = 0xFFFFFFF;														// clip to 28 bits
-		}
-
-		buff[writeBuffer][buf++] = 0x0A;										// MIDI status A
-		buff[writeBuffer][buf++] = 0xA3;										// MIDI status A, MIDI channel 3  (BTU)
-		buff[writeBuffer][buf++] = (t >> 21);									// first 7 bits
-		buff[writeBuffer][buf++] = (t >> 14) & 0x7F;							// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-
-		buff[writeBuffer][buf++] = 0x0B;										// MIDI status B
-		buff[writeBuffer][buf++] = 0xB3;										// MIDI status B, MIDI channel 3  (BTL)
-		buff[writeBuffer][buf++] = (t >> 7) & 0x7F;								// third 7 bits
-		buff[writeBuffer][buf++] = t & 0x7F;									// fourth 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-	}
-	else																		// 14-bit format is enough
-	{
-		buff[writeBuffer][buf++] = 0x08;										// MIDI status 8
-		buff[writeBuffer][buf++] = 0x83;										// MIDI status 8, MIDI channel 3  (BT)
-		buff[writeBuffer][buf++] = t >> 7;										// first 7 bits
-		buff[writeBuffer][buf++] = t & 0x7F;									// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-	}
-}
-
-
-/*****************************************************************************
-*	@brief  MSG_SetCurveType
-*   @param  ct: (14 bits) selects a curve
-******************************************************************************/
-
-void MSG_SetCurveType(uint32_t ct)
-{
-	if (ct > 0x3FFF)
-	{
-		ct = 0x3FFF;															// clip to 14 bits
-	}
-
-	buff[writeBuffer][buf++] = 0x08;											// MIDI status 8
-	buff[writeBuffer][buf++] = 0x84;											// MIDI status 8, MIDI channel 4  (CT)
-	buff[writeBuffer][buf++] = ct >> 7;											// first 7 bits
-	buff[writeBuffer][buf++] = ct & 0x7F;										// second 7 bits
-
-	if (buf == BUFFER_SIZE)
-	{
-		MSG_SendMidiBuffer();
-	}
-}
-
-
-/*****************************************************************************
-*	@brief  MSG_SetCurvature
-*   @param  c: (14 or 28 bits) curvature amount
-******************************************************************************/
-
-void MSG_SetCurvature(int32_t c)
-{
-	uint32_t sign = 0x00;
-
-	if (c < 0)
-	{
-		c = -c;																	// absolute value
-		sign = 0x40;															// first of seven bits
-	}
-
-	if (c > 0x1FFF)																// absolute value does not fit into 13 bits - we use 27 bits
-	{
-		if (c > 0x7FFFFFF)
-		{
-			c = 0x7FFFFFF;														// clip to 27-bit range
-		}
-
-		buff[writeBuffer][buf++] = 0x0A;										// MIDI status A
-		buff[writeBuffer][buf++] = 0xA4;										// MIDI status A, MIDI channel 4  (CU)
-		buff[writeBuffer][buf++] = (c >> 21) | sign;							// first 7 bits (sign and upper 6 bits of absolute value)
-		buff[writeBuffer][buf++] = (c >> 14) & 0x7F;							// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-
-		buff[writeBuffer][buf++] = 0x0B;										// MIDI status B
-		buff[writeBuffer][buf++] = 0xB4;										// MIDI status B, MIDI channel 4  (CL)
-		buff[writeBuffer][buf++] = (c >> 7) & 0x7F;								// third 7 bits
-		buff[writeBuffer][buf++] = c & 0x7F;									// fourth 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-	}
-	else																		// (1+13)-bit format is enough
-	{
-		buff[writeBuffer][buf++] = 0x09;										// MIDI status 9
-		buff[writeBuffer][buf++] = 0x94;										// MIDI status 9, channel 4  (C)
-		buff[writeBuffer][buf++] = (c >> 7) | sign;								// first 7 bits (sign and upper 6 bits of absolute value)
-		buff[writeBuffer][buf++] = c & 0x7F;									// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-	}
-}
-
-
-/*****************************************************************************
 *	@brief  MSG_SetDestinationSigned - used for signed values, which will be
 *	packed into (1 + 13) bit (DS) or (1 + 27) bit (DU, DL) messages
 *   @param  d: destination value (may be negative)
@@ -676,118 +545,52 @@ void MSG_SetDestination(uint32_t d)
 
 
 /*****************************************************************************
-*	@brief  MSG_BendDestinationSigned - changes the destination of the
-*	currently running segment. Used for signed values, which will be packed
-*	into (1 + 13) bit (BDS) or (1 + 27) bit (BDU, BDL) messages.
-*   @param  d: destination value (may be negative)
+*	@brief  MSG_KeyDown
+*	Used to start a note
+*   @param  v: velocity value (0...4095), 12 bit (14 bits would be possible)
 ******************************************************************************/
 
-void MSG_BendDestinationSigned(int32_t d)
+void MSG_KeyDown(uint32_t v)
 {
-	uint32_t sign = 0x00;
+	buff[writeBuffer][buf++] = 0x09;										// MIDI status 9
+	buff[writeBuffer][buf++] = 0x97;										// MIDI status 9, MIDI channel 7  (KD)
+	buff[writeBuffer][buf++] = v >> 7;										// first 7 bits
+	buff[writeBuffer][buf++] = v & 0x7F;									// second 7 bits
 
-	if (d < 0)
+	if (buf == BUFFER_SIZE)
 	{
-		d = -d;																	// absolute value
-		sign = 0x40;															// first of seven bits
-	}
-
-	if (d > 0x1FFF)															// absolute value does not fit into 13 bits - we use 27 bits
-	{
-		if (d > 0x7FFFFFF)
-		{
-			d = 0x7FFFFFF;														// clip to 27-bit range
-		}
-
-		buff[writeBuffer][buf++] = 0x0A;										// MIDI status A
-		buff[writeBuffer][buf++] = 0xA6;										// MIDI status A, MIDI channel 6  (BDU)
-		buff[writeBuffer][buf++] = (d >> 21) | sign;							// first 7 bits (sign and upper 6 bits of absolute value)
-		buff[writeBuffer][buf++] = (d >> 14) & 0x7F;							// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-
-		buff[writeBuffer][buf++] = 0x0B;										// MIDI status B
-		buff[writeBuffer][buf++] = 0xB6;										// MIDI status B, MIDI channel 6  (BDL)
-		buff[writeBuffer][buf++] = (d >> 7) & 0x7F;								// third 7 bits
-		buff[writeBuffer][buf++] = d & 0x7F;									// fourth 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-	}
-	else																	// (1+13)-bit format is enough
-	{
-		buff[writeBuffer][buf++] = 0x09;										// MIDI status 9
-		buff[writeBuffer][buf++] = 0x96;										// MIDI status 9, MIDI channel 6  (BDS)
-		buff[writeBuffer][buf++] = (d >> 7) | sign;								// first 7 bits (sign and upper 6 bits of absolute value)
-		buff[writeBuffer][buf++] = d & 0x7F;									// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
+		MSG_SendMidiBuffer();
 	}
 }
 
 
 /*****************************************************************************
-*	@brief  MSG_BendDestination - changes the destination of the currently
-*	running segment. Used for unsigned values. They are packed into
-*	14-bit (BD) or 27-bit (BDU, BDL) messages.
-*   @param  d: destination value (positive values only)
+*	@brief  MSG_KeyUp
+*	Used to start the release phase of a note
+*   @param  v: velocity value (0...4095), 12 bit (14 bits would be possible)
 ******************************************************************************/
 
-void MSG_BendDestination(uint32_t d)
+void MSG_KeyUp(uint32_t v)
 {
-	if (d > 0x3FFF)															// value does not fit into 14 bits - we use 27 bits
+	buff[writeBuffer][buf++] = 0x08;										// MIDI status 8
+	buff[writeBuffer][buf++] = 0x87;										// MIDI status 8, MIDI channel 7  (D)
+	buff[writeBuffer][buf++] = v >> 7;										// first 7 bits
+	buff[writeBuffer][buf++] = v & 0x7F;									// second 7 bits
+
+	if (buf == BUFFER_SIZE)
 	{
-		if (d > 0x7FFFFFF)
-		{
-			d = 0x7FFFFFF;														// clip to 27-bit range (setting the sign bit to zero)
-		}
-
-		buff[writeBuffer][buf++] = 0x0A;										// MIDI status A
-		buff[writeBuffer][buf++] = 0xA6;										// MIDI status A, MIDI channel 6  (BDU)
-		buff[writeBuffer][buf++] = (d >> 21);									// first 7 bits (sign is zero)
-		buff[writeBuffer][buf++] = (d >> 14) & 0x7F;							// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-
-		buff[writeBuffer][buf++] = 0x0B;										// MIDI status B
-		buff[writeBuffer][buf++] = 0xB6;										// MIDI status B, MIDI channel 6  (BDL)
-		buff[writeBuffer][buf++] = (d >> 7) & 0x7F;								// third 7 bits
-		buff[writeBuffer][buf++] = d & 0x7F;									// fourth 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-	}
-	else																	// 14-bit format is enough
-	{
-		buff[writeBuffer][buf++] = 0x08;										// MIDI status 8
-		buff[writeBuffer][buf++] = 0x86;										// MIDI status 8, MIDI channel 6  (BD)
-		buff[writeBuffer][buf++] = d >> 7;										// first 7 bits
-		buff[writeBuffer][buf++] = d & 0x7F;									// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
+		MSG_SendMidiBuffer();
 	}
 }
 
 
 /*****************************************************************************
 *	@brief  PreloadMode - For internal use with MSG_ commands below
-*   @param  m: (7 bits) Id of the selected mode
+*   @param  m: (14 bits) Id of the selected list (upper 7 bits)
+*   			0 - no list
+*   			1 - list of parameters (for preset loading)
+*   			2 - list of Key Down, Key Up parameters, separated by D (paramters) and KD, KU (voices)
+*              and selected mode (lower 7 bits)
 *   			0 - disable
 *   			1 - enable
 *   			2 - apply
@@ -795,20 +598,25 @@ void MSG_BendDestination(uint32_t d)
 
 void PreloadMode(uint32_t m)
 {
-	if (m > 0x7F)
-	{
-		m = 0x7F;															// clip to 7 bits
-	}
-
 	buff[writeBuffer][buf++] = 0x0A;										// MIDI status A
 	buff[writeBuffer][buf++] = 0xAF;										// MIDI status A, MIDI channel F  (PL)
-	buff[writeBuffer][buf++] = 0x00;										// first 7 bits (unused)
-	buff[writeBuffer][buf++] = m;											// second 7 bits
+	buff[writeBuffer][buf++] = m >> 7;										// first 7 bits
+	buff[writeBuffer][buf++] = m & 0x7F;									// second 7 bits
 
 	if (buf == BUFFER_SIZE)
 	{
 		MSG_SendMidiBuffer();
 	}
+}
+
+
+/*****************************************************************************
+* @brief	MSG_KeyPreload - enables the Preload mode for KeyDown/Up
+******************************************************************************/
+
+void MSG_KeyPreload(void)
+{
+	PreloadMode(257);
 }
 
 
@@ -842,74 +650,6 @@ void MSG_EnablePreload(void)
 void MSG_ApplyPreloadedValues(void)
 {
 	PreloadMode(2);
-}
-
-
-/*****************************************************************************
-* @brief	SelectMode - For internal use with the MSG_ commands below
-* @param	s: (7 bits) Id of the mode
-******************************************************************************/
-
-static void SelectMode(uint32_t s)
-{
-	if (s > 0x7F)
-	{
-		s = 0x7F;															// clip to 7 bits
-	}
-
-	buff[writeBuffer][buf++] = 0x0B;										// MIDI status B
-	buff[writeBuffer][buf++] = 0xB7;										// MIDI status B, MIDI channel 7  (S)
-	buff[writeBuffer][buf++] = 0x00;										// first 7 bits (unused)
-	buff[writeBuffer][buf++] = s;											// second 7 bits
-
-	if (buf == BUFFER_SIZE)
-	{
-		MSG_SendMidiBuffer();
-	}
-}
-
-
-/******************************************************************************
-* @brief	MSG_Parallel_V_P - disables the list modes
-* (implicit serial addressing)
-*******************************************************************************/
-
-void MSG_Parallel_V_P(void)
-{
-	SelectMode(0);				// = default
-}
-
-
-/******************************************************************************
-* @brief	MSG_Serial_V_Parallel_P - enables the list mode
-* (implicit serial addressing) for voices
-*******************************************************************************/
-
-void MSG_Serial_V_Parallel_P(void)
-{
-	SelectMode(1);
-}
-
-
-/******************************************************************************
-* @brief	MSG_Parallel_V_Serial_P - enables the list mode
-* (implicit serial addressing) for parameters
-*******************************************************************************/
-
-void MSG_Parallel_V_Serial_P(void)
-{
-	SelectMode(2);
-}
-
-
-/******************************************************************************
-* @brief		MSG_Serial_V_P - enables the list mode
-* (implicit serial addressing) for voices and parameters
-*******************************************************************************/
-
-void MSG_Serial_V_P(void)
-{
-	SelectMode(3);
 }
 
 

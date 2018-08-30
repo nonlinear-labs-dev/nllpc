@@ -35,9 +35,8 @@ void ADC_WORK_SetPedal4Behaviour(uint32_t behaviour);
 void ADC_WORK_SetRibbon1EditMode(uint32_t mode);
 void ADC_WORK_SetRibbon1EditBehaviour(uint32_t behaviour);
 void ADC_WORK_SetRibbon1Behaviour(uint32_t behaviour);
-void ADC_WORK_SetRibbon1RelFactor(uint32_t factor);
 void ADC_WORK_SetRibbon2Behaviour(uint32_t behaviour);
-void ADC_WORK_SetRibbon2RelFactor(uint32_t factor);
+void ADC_WORK_SetRibbonRelFactor(uint32_t factor);
 
 uint32_t ADC_WORK_GetPedal1Behaviour(void);
 uint32_t ADC_WORK_GetPedal2Behaviour(void);
@@ -49,6 +48,7 @@ uint32_t ADC_WORK_GetRibbon2Behaviour(void);
 void ADC_WORK_Check_Pedal_Start(uint32_t pedalId);
 void ADC_WORK_Check_Pedal_Cancel(uint32_t pedalId);
 
+void ADC_WORK_Generate_BenderTable(uint32_t curve);
 void ADC_WORK_Generate_AftertouchTable(uint32_t curve);
 
 #endif /* TCD_NL_TCD_ADC_WORK_H_ */

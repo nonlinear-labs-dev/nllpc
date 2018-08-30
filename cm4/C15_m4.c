@@ -1,5 +1,5 @@
 /******************************************************************************/
-/** @file	C15_m4.c
+/** @file	Emphase_M4_Main.c
     @date	2016-03-09 SSC
 *******************************************************************************/
 
@@ -9,7 +9,15 @@
 
 #include "sys/nl_coos.h"
 #include "sys/delays.h"
-#include "boards/emphase_v4.h"
+
+#ifdef C15_VERSION_4
+	#include "boards/emphase_v4.h"
+#elif defined C15_VERSION_5
+	#include "boards/emphase_v5.h"
+#else
+	#error "No version defined."
+#endif
+
 
 #include "drv/nl_gpio.h"
 #include "drv/nl_dbg.h"
@@ -157,7 +165,7 @@ void Init(void)
 
 	/* TCD */
 	EXPON_Init();
-    VALLOC_Init(12);
+	VALLOC_Init(NUM_VOICES);
 	ENV_Init();
 	POLY_Init();
 	PARAM_WORK_Init();
@@ -174,10 +182,11 @@ void Init(void)
     COOS_Task_Add(SPI_BB_Polling,   30,    1);	// every 125 us, checking the buffer with messages from the BBB and driving the LPC-BB "heartbeat"
 
     COOS_Task_Add(ADC_WORK_Init, 	60,    0);	// preparing the ADC processing (will be executed after the M0 has been initialized)
-    COOS_Task_Add(ADC_WORK_Process, 70,   80);	// every 10 ms, reading ADC values and applying changes, interleaved with SPI_BB_Polling
+    COOS_Task_Add(ADC_WORK_Process, 70,   100);	// every 12.5 ms, reading ADC values and applying changes
+    COOS_Task_Add(ADC_WORK_SendBBMessages, 85,   800);	// every 100 ms, sending the results of the ADC processing to the BBB
 
-    COOS_Task_Add(DBG_Process,      80, 4800);
-    COOS_Task_Add(MSG_CheckUSB,		90, 1600);	// ever 200 ms, checking if the USB connection to the ePC or the ePC is still working
+    COOS_Task_Add(MSG_CheckUSB,		105, 1600);	// every 200 ms, checking if the USB connection to the ePC or the ePC is still working
+    COOS_Task_Add(DBG_Process,      95, 4800);	// every 600 ms
 
     /* M0 */
     CPU_M0_Init();

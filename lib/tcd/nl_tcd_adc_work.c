@@ -20,18 +20,22 @@
 #define GROUND_THRESHOLD		20
 #define CHANGE_FOR_DETECTION	500
 
-#define RIBBON_THRESHOLD   75
+#define RIBBON_THRESHOLD		75
 
-#define RIBBON_CORR_4000   50		// 0 ... 128 refers to 0 ... 3.125 %, upscaled by 1024
-#define RIBBON_CORR_8000  120		// 0 ... 128 refers to 0 ... 3.125 %, upscaled by 1024
-#define RIBBON_CORR_12000 110		// 0 ... 128 refers to 0 ... 3.125 %, upscaled by 1024
+#define RIBBON_CORR_4000		50		// 0 ... 128 refers to 0 ... 3.125 %, upscaled by 1024
+#define RIBBON_CORR_8000		120		// 0 ... 128 refers to 0 ... 3.125 %, upscaled by 1024
+#define RIBBON_CORR_12000		110		// 0 ... 128 refers to 0 ... 3.125 %, upscaled by 1024
 
-#define DELTA  40					// hysteresis for pedals
+#define DELTA					40		// hysteresis for pedals
 
-#define PB_DELTA  20				// +/-1 % of +/-2048, dead range
-#define PB_SMALL_THRESH 200			// +/-10 % of +/-2048, test range
-#define PB_TEST_PERIOD 80			// 1 s = 80 * 12.5 ms
-#define PB_RAMP_INC 8				// 400 / 8 = 50 steps from the threshold to zero (50 * 12.5 ms = 625 ms)
+#define BENDER_DEADRANGE		20		// +/-1 % of +/-2047
+#define BENDER_SMALL_THRESH		200		// +/-10 % of +/-2047, test range
+#define BENDER_TEST_PERIOD 		80		// 1 s = 80 * 12.5 ms
+#define BENDER_RAMP_INC 		8		// 400 / 8 = 50 steps from the threshold to zero (50 * 12.5 ms = 625 ms)
+#define BENDER_FACTOR			4540	// 4540 / 4096 = 2047 / 1847 for saturation = 100 % at 90 % of the input range
+
+#define AT_DEADRANGE			30		// 0.73 % of 0 ... 4095
+#define AT_FACTOR				5080	// 5080 / 4096 for saturation = 100 % at 81 % of the input range
 
 
 #define NUM_HW_SOURCES 8
@@ -102,7 +106,6 @@ static uint32_t pedal3Behaviour;
 static uint32_t pedal4Behaviour;
 
 static int32_t lastPitchbend;
-static uint32_t pitchbendFactor;
 static uint32_t pitchbendZero;
 
 static uint32_t pbSignalIsSmall;
@@ -111,6 +114,7 @@ static uint32_t pbTestMode;
 static uint32_t pbRampMode;
 static int32_t pbRamp;
 static int32_t pbRampInc;
+static uint32_t benderTable[33] = {};				// contains the chosen aftertouch curve
 
 static uint32_t lastAftertouch;
 static uint32_t atTable[33] = {};				// contains the chosen aftertouch curve
@@ -124,9 +128,8 @@ static uint32_t ribbon2Touch;
 static uint32_t ribbon2Factor;		// 1024 * 16000 / MaxValue
 
 static uint32_t ribbon1Behaviour;
-static int32_t ribbon1RelFactor;
 static uint32_t ribbon2Behaviour;
-static int32_t ribbon2RelFactor;
+static int32_t ribbonRelFactor;
 
 static uint32_t ribbon1IsEditControl;
 static uint32_t ribbon1EditBehaviour;
@@ -142,30 +145,26 @@ static uint32_t suspend;
 
 
 /*****************************************************************************
-* @brief	ADC_WORK_Generate_AftertouchTable -
+* @brief	ADC_WORK_Generate_BenderTable -
 * @param	0: soft, 1: normal, 2: hard
 ******************************************************************************/
 
-void ADC_WORK_Generate_AftertouchTable(uint32_t curve)
+void ADC_WORK_Generate_BenderTable(uint32_t curve)
 {
-	float_t at_max = 16000.0;	// ...
+	float_t range = 8000.0;		// separate processing of absolute values for positive and negative range
 
-	float_t a = 0.2;
-	float_t b = 0.8;
+	float_t s = 0.5;
 
-	switch (curve)	// b defines the curve shape
+	switch (curve)	// s defines the curve shape
 	{
 		case 0:		// soft
-			a = 1.0;
-			b = 0.0;
+			s = 0.0;			// y = x
 			break;
 		case 1:		// normal
-			a = 0.3;
-			b = 0.7;
+			s = 0.5;			// y = 0.5 * x + 0.5 * x^3
 			break;
 		case 2:		// hard
-			a = 0.05;
-			b = 0.95;
+			s = 1.0;			// y = x^3
 			break;
 		default:
 			/// Error
@@ -179,7 +178,49 @@ void ADC_WORK_Generate_AftertouchTable(uint32_t curve)
 	for (i = 0; i <= i_max; i++)
 	{
 		x = (float)i / (float)i_max;
-		atTable[i] = (uint32_t)( at_max * x * (a + b * x*x*x*x*x ) );
+
+		benderTable[i] = (uint32_t)( range * x * ((1.0 - s) + s * x*x ) );
+	}
+}
+
+
+
+/*****************************************************************************
+* @brief	ADC_WORK_Generate_AftertouchTable -
+* @param	0: soft, 1: normal, 2: hard
+******************************************************************************/
+
+void ADC_WORK_Generate_AftertouchTable(uint32_t curve)
+{
+	float_t range = 16000.0;	// full TCD range
+
+	float_t s = 0.7;
+
+	switch (curve)	// s defines the curve shape
+	{
+		case 0:		// soft
+			s = 0.0;			// y = x
+			break;
+		case 1:		// normal
+			s = 0.7;			// y = 0.3 * x + 0.7 * x^6
+			break;
+		case 2:		// hard
+			s = 0.95;			// y = 0.05 * x + 0.95 * x^6
+			break;
+		default:
+			/// Error
+			break;
+	}
+
+	uint32_t i_max = 32;
+	uint32_t i;
+	float x;
+
+	for (i = 0; i <= i_max; i++)
+	{
+		x = (float)i / (float)i_max;
+
+		atTable[i] = (uint32_t)( range * x * ((1.0 - s) + s * x*x*x*x*x ) );
 	}
 }
 
@@ -238,7 +279,6 @@ void ADC_WORK_Init(void)
 	pedal4Behaviour = 0;
 
 	lastPitchbend = 0;
-	pitchbendFactor = (1024 * 8000) / 1847;	// output range (+/-8000) / input range (theoretically +/-2048), upscaled by 1024
 	pitchbendZero = 2048;
 
 	pbSignalIsSmall = 0;
@@ -247,6 +287,7 @@ void ADC_WORK_Init(void)
 	pbRampMode = 0;
 	pbRamp = 0;
 	pbRampInc = 0;
+	ADC_WORK_Generate_BenderTable(1);
 
 	lastAftertouch = 0;
 	ADC_WORK_Generate_AftertouchTable(1);
@@ -260,9 +301,8 @@ void ADC_WORK_Init(void)
 	ribbon2Factor = (1024 * 16000) / 3880;		/// muss (auto-)calibrierbar werden !!!
 
 	ribbon1Behaviour = 0;		// abs, Non-Return
-	ribbon1RelFactor = 256;		// factor 1.0
 	ribbon2Behaviour = 0;		// abs, Non-Return
-	ribbon2RelFactor = 256;		// factor 1.0
+	ribbonRelFactor = 256;		// factor 1.0
 
 	ribbon1IsEditControl = 0;
 	ribbon1EditBehaviour = 0;
@@ -624,13 +664,13 @@ uint32_t ADC_WORK_GetRibbon1Behaviour(void)
 
 
 /*****************************************************************************
-* @brief	ADC_WORK_SetRibbon1RelFactor -
+* @brief	ADC_WORK_SetRibbonRelFactor -
 * @param
 ******************************************************************************/
 
-void ADC_WORK_SetRibbon1RelFactor(uint32_t factor)
+void ADC_WORK_SetRibbonRelFactor(uint32_t factor)
 {
-	ribbon1RelFactor = factor;
+	ribbonRelFactor = factor;
 }
 
 
@@ -663,16 +703,6 @@ uint32_t ADC_WORK_GetRibbon2Behaviour(void)
 	{
 		return NON_RETURN;
 	}
-}
-
-/*****************************************************************************
-* @brief	ADC_WORK_SetRibbon2RelFactor -
-* @param
-******************************************************************************/
-
-void ADC_WORK_SetRibbon2RelFactor(uint32_t factor)
-{
-	ribbon2RelFactor = factor;
 }
 
 
@@ -1205,7 +1235,7 @@ void ADC_WORK_Process(void)
 	value = value - pitchbendZero;										// -2048 ... 2047 (after initialization)
 
 
-	if ( (value > -PB_SMALL_THRESH) && (value < PB_SMALL_THRESH) )  	// small signals
+	if ( (value > -BENDER_SMALL_THRESH) && (value < BENDER_SMALL_THRESH) )  // small signals
 	{
 		if (!pbSignalIsSmall)	// entering the small-signal range
 		{
@@ -1215,7 +1245,7 @@ void ADC_WORK_Process(void)
 
 		pbSignalIsSmall = 1;
 	}
-	else														// large signals
+	else																	// large signals
 	{
 		if (pbSignalIsSmall)	// leaving the small-signal range
 		{
@@ -1227,7 +1257,7 @@ void ADC_WORK_Process(void)
 
 	if (pbTestMode)
 	{
-		if (pbTestTime < PB_TEST_PERIOD)
+		if (pbTestTime < BENDER_TEST_PERIOD)
 		{
 			pbTestTime++;
 		}
@@ -1238,42 +1268,50 @@ void ADC_WORK_Process(void)
 
 			if (value > 0)
 			{
-				pbRamp = value;				// absolute amount of shifting
-				pbRampInc = PB_RAMP_INC;	// positive increment, will shift the zero line up
+				pbRamp = value;					// absolute amount of shifting
+				pbRampInc = BENDER_RAMP_INC;	// positive increment, will shift the zero line up
 			}
 			else
 			{
-				pbRamp = -value;			// absolute amount of shifting
-				pbRampInc = -PB_RAMP_INC;	// negative increment, will shift the zero line down
+				pbRamp = -value;				// absolute amount of shifting
+				pbRampInc = -BENDER_RAMP_INC;	// negative increment, will shift the zero line down
 			}
 		}
 	}
 
 	if (pbRampMode)
 	{
-		pbRamp -= PB_RAMP_INC;			// determines the size of the ramp
+		pbRamp -= BENDER_RAMP_INC;		// determines the size of the ramp
 
-		if (pbRamp <= 0)	 		// ramp has reached zero
+		if (pbRamp <= 0)	 			// ramp has reached zero
 		{
-			pbRampMode = 0;				// and is stopped
+			pbRampMode = 0;					// and is stopped
 		}
-		else						// the steps before the ramp reaches zero
+		else							// the steps before the ramp reaches zero
 		{
-			pitchbendZero += pbRampInc;	// shifting the zero line = negative feedback
+			pitchbendZero += pbRampInc;		// shifting the zero line = negative feedback
 		}
 	}
 
 	if (value != lastPitchbend)
 	{
-		if (value > PB_DELTA)				// is in the positive work range
+		if (value > BENDER_DEADRANGE)				// is in the positive work range
 		{
-			valueToSend = value - PB_DELTA;		// absolute amount
+			valueToSend = value - BENDER_DEADRANGE;		// absolute amount
 
-			valueToSend = (valueToSend * pitchbendFactor) >> 10;
+			valueToSend = valueToSend * BENDER_FACTOR;	// saturation factor
 
-			if (valueToSend > 8000)				// clipping
+			if (valueToSend > 2047*4096)
 			{
-				valueToSend = 8000;
+				valueToSend = 8000;					// clipping
+			}
+			else
+			{
+				valueToSend = valueToSend >> 12;	// 0 ... 2047 (11 Bit)
+
+				uint32_t fract = valueToSend & 0x3F;														// lower 6 bits used for interpolation
+				uint32_t index = valueToSend >> 6;															// upper 5 bits (0...31) used as index in the table
+				valueToSend = (benderTable[index] * (64 - fract) + benderTable[index + 1] * fract) >> 6;	// (0...8000) * 64 / 64
 			}
 
 			valueToSend = 8000 + valueToSend;	// 8001 ... 16000
@@ -1282,15 +1320,23 @@ void ADC_WORK_Process(void)
 			WriteHWValueForBB(HW_SOURCE_ID_PITCHBEND, valueToSend);
 			TEST_Output(4, valueToSend);
 		}
-		else if (value < -PB_DELTA)			// is in the negative work range
+		else if (value < -BENDER_DEADRANGE)			// is in the negative work range
 		{
-			valueToSend = -PB_DELTA - value;	// absolute amount
+			valueToSend = -BENDER_DEADRANGE - value;	// absolute amount
 
-			valueToSend = (valueToSend * pitchbendFactor) >> 10;
+			valueToSend = valueToSend * BENDER_FACTOR;	// saturation factor
 
-			if (valueToSend > 8000)				// clipping
+			if (valueToSend > 2047*4096)
 			{
-				valueToSend = 8000;
+				valueToSend = 8000;					// clipping
+			}
+			else
+			{
+				valueToSend = valueToSend >> 12;	// 0 ... 2047 (11 Bit)
+
+				uint32_t fract = valueToSend & 0x3F;														// lower 6 bits used for interpolation
+				uint32_t index = valueToSend >> 6;															// upper 5 bits (0...31) used as index in the table
+				valueToSend = (benderTable[index] * (64 - fract) + benderTable[index + 1] * fract) >> 6;	// (0...8000) * 64 / 64
 			}
 
 			valueToSend = 8000 - valueToSend;	// 7999 ... 0
@@ -1301,7 +1347,7 @@ void ADC_WORK_Process(void)
 		}
 		else								// is in the dead range
 		{
-			if ( (lastPitchbend > PB_DELTA)  || (lastPitchbend < -PB_DELTA) )		// was outside of the dead range before
+			if ( (lastPitchbend > BENDER_DEADRANGE)  || (lastPitchbend < -BENDER_DEADRANGE) )		// was outside of the dead range before
 			{
 				PARAM_Set(PARAM_ID_PITCHBEND, 8000);
 				WriteHWValueForBB(HW_SOURCE_ID_PITCHBEND, 8000);
@@ -1319,30 +1365,32 @@ void ADC_WORK_Process(void)
 
 	if (value != lastAftertouch)
 	{
-		if (value > 30)			/// define
+		if (value > AT_DEADRANGE)		// outside of the dead range
 		{
-			value *= 5060;		// aftertouch saturation factor (maximum 81% -> 100%)  /// define
+			valueToSend = value - AT_DEADRANGE;
 
-			if (value > 4095*4096)
+			valueToSend = value * AT_FACTOR;	// saturation factor
+
+			if (valueToSend > 4095*4096)
 			{
 				valueToSend = 16000;
 			}
 			else
 			{
-				value = value >> 12;	// 0 ... 4095
+				valueToSend = valueToSend >> 12;	// 0 ... 4095
 
-				uint32_t fract = value & 0x7F;															// lower 7 bits used for interpolation
-				uint32_t index = value >> 7;															// upper 5 bits (0...31) used as index in the table
-				valueToSend = (atTable[index] * (128 - fract) + atTable[index + 1] * fract) >> 7;		// (0...16000) * 128 / 128
+				uint32_t fract = valueToSend & 0x7F;												// lower 7 bits used for interpolation
+				uint32_t index = valueToSend >> 7;													// upper 5 bits (0...31) used as index in the table
+				valueToSend = (atTable[index] * (128 - fract) + atTable[index + 1] * fract) >> 7;	// (0...16000) * 128 / 128
 			}
 
 			PARAM_Set(PARAM_ID_AFTERTOUCH, valueToSend);
 			WriteHWValueForBB(HW_SOURCE_ID_AFTERTOUCH, valueToSend);
 			TEST_Output(5, valueToSend);
 		}
-		else										// is in the dead range
+		else				// inside of the dead range
 		{
-			if (lastAftertouch > 30)				// was outside of the dead range before   /// define
+			if (lastAftertouch > AT_DEADRANGE)		// was outside of the dead range before   /// define
 			{
 				PARAM_Set(PARAM_ID_AFTERTOUCH, 0);
 				WriteHWValueForBB(HW_SOURCE_ID_AFTERTOUCH, 0);
@@ -1424,7 +1472,7 @@ void ADC_WORK_Process(void)
 
 		if (ribbon1IsEditControl)
 		{
-			inc = (inc * ribbon1RelFactor) / 256;
+			inc = (inc * ribbonRelFactor) / 256;
 
 			SendEditMessageToBB(PARAM_ID_RIBBON_1, valueToSend, inc);
 		}
@@ -1442,7 +1490,7 @@ void ADC_WORK_Process(void)
 			{
 				if (inc != 0)
 				{
-					inc = (inc * ribbon1RelFactor) / 256;
+					inc = (inc * ribbonRelFactor) / 256;
 
 					ribbon1Output += inc;
 
@@ -1541,7 +1589,7 @@ void ADC_WORK_Process(void)
 		{
 			if (inc != 0)
 			{
-				inc = (inc * ribbon2RelFactor) / 256;
+				inc = (inc * ribbonRelFactor) / 256;
 
 				ribbon2Output += inc;
 

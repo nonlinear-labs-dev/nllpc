@@ -1,6 +1,6 @@
 /******************************************************************************/
 /**	@file 	M0_IPC_Test.c
-	@date	2016-03-01 DTZ
+	@date	2016-03-09 SSC
   	@author	2015-01-31 DTZ
 
 	@brief	see the M4_IPC_Test.c file for the documentation
@@ -12,7 +12,15 @@
 #include "cmsis/LPC43xx.h"
 
 #include "sys/delays.h"
-#include "boards/emphase_v4.h"
+
+#ifdef C15_VERSION_4
+	#include "boards/emphase_v4.h"
+#elif defined C15_VERSION_5
+	#include "boards/emphase_v5.h"
+#else
+	#error "No version defined."
+#endif
+
 #include "ipc/emphase_ipc.h"
 
 #include "drv/nl_rit.h"
@@ -200,7 +208,7 @@ void Scheduler(void)
 
 		case 14:	// attenuator: best case: 4.9 µs, worst case: 44.8 µs
 		{
-			uint8_t attenuatorValue = (uint8_t) Emphase_IPC_PlayBuffer_Read(EMPHASE_IPC_ATTENUATOR_ADC);
+			uint8_t attenuatorValue = (uint8_t) (127 - (Emphase_IPC_PlayBuffer_Read(EMPHASE_IPC_VOLUME_POTI_ADC) >> 5));
 			ESPI_Attenuator_Channel_Set(0, attenuatorValue);
 			ESPI_Attenuator_Channel_Set(1, attenuatorValue);
 

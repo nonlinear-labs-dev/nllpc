@@ -46,25 +46,19 @@ void MSG_SelectAllParameters(void);
 void MSG_AddParameter(uint32_t p);
 
 void MSG_SetTime(uint32_t t);
-void MSG_BendTime(uint32_t t);
-
-void MSG_SetCurveType(uint32_t ct);
-void MSG_SetCurvature(int32_t c);
 
 void MSG_SetDestination(uint32_t d);
 void MSG_SetDestinationSigned(int32_t d);
-void MSG_BendDestination(uint32_t d);
-void MSG_BendDestinationSigned(int32_t d);
 
-void MSG_DisablePreload(void);							// disables the Preload mode: a D message immediately starts a transition
-void MSG_EnablePreload(void);							// enables the Preload mode: the transition will start when the Apply message arrives
-void MSG_ApplyPreloadedValues(void);					// applies preloaded D values and starts the transition(s)
+void MSG_KeyDown(uint32_t v);
+void MSG_KeyUp(uint32_t v);
 
-void MSG_Parallel_V_P(void);
-void MSG_Serial_V_Parallel_P(void);
-void MSG_Parallel_V_Serial_P(void);
-void MSG_Serial_V_P(void);
+void MSG_Flush(void);
 
+void MSG_KeyPreload(void);							// enables the Preload/List mode for KeyDown and KeyUp
+void MSG_DisablePreload(void);						// disables the Preload mode: a D message immediately starts a transition
+void MSG_EnablePreload(void);						// enables the Preload mode: the transition will start when the Apply message arrives
+void MSG_ApplyPreloadedValues(void);				// applies preloaded D values and starts the transition(s)
 
 void MSG_RefreshAddresses(void);						// the following messages will include voice and parameter addresses
 

@@ -13,6 +13,9 @@
 #include "cmsis/lpc43xx_cgu.h"
 #include "drv/nl_cgu.h"
 
+#define RX_BUFFER_SIZE 512
+static uint8_t global_rx_buffer[RX_BUFFER_SIZE];
+
 /**********************************************************************
  * @brief		Initializes the SPI-DMA driver for the desired SSP
  * @param[in]	SSPx	Pointer to selected SSP peripheral, should be:
@@ -221,10 +224,8 @@ uint32_t SPI_DMA_SendReceiveBlocking(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint
 		ch = GPDMA_SPI_1_RX_CHANNEL;
 	else return 0;
 
-    if(rx_buff == NULL) {
-        while(1);
-//		rx_buff = (uint8_t*)malloc(sizeof(uint8_t)*len);
-    }
+    if(rx_buff == NULL)
+        rx_buff = global_rx_buffer;
 
     if(SPI_DMA_Send(SSPx, tx_buff, len, NULL) == 0)
 		return 0;

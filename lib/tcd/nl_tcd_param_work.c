@@ -268,16 +268,8 @@ static void ProcessBasicParam(uint32_t paramId, int32_t paramVal)
 {
 	switch (paramId)
 	{
-		case PARAM_ID_OSC_A_PHASE:					// Parameters controlling the polyphonic TCD generation
-			POLY_SetOscAPhase(paramVal); break;
-		case PARAM_ID_OSC_B_PHASE:
-			POLY_SetOscBPhase(paramVal); break;
-
-		case PARAM_ID_KEY_PAN:
+		case PARAM_ID_KEY_PAN:							// Parameters controlling the polyphonic TCD generation
 			POLY_SetKeyPan(paramVal); break;
-
-		case PARAM_ID_MASTER_TUNE:
-			POLY_SetMasterTune(paramVal); break;
 
 		case PARAM_ID_UNISON_VOICES:
 			POLY_SetUnisonVoices(paramVal); break;
@@ -288,92 +280,18 @@ static void ProcessBasicParam(uint32_t paramId, int32_t paramVal)
 		case PARAM_ID_UNISON_PAN:
 			POLY_SetUnisonPan(paramVal); break;
 
-		case PARAM_ID_ENV_A_ATTACK_TIME:
-			ENV_A_SetAttackTime(paramVal); break;
-		case PARAM_ID_ENV_A_ATTACK_CURVE:
-			ENV_A_SetAttackCurvature(paramVal); break;
-		case PARAM_ID_ENV_A_DECAY_1_TIME:
-			ENV_A_SetDecay1Time(paramVal); break;
-		case PARAM_ID_ENV_A_BREAKPOINT_LEVEL:
-			ENV_A_SetBreakpointLevel(paramVal); break;
-		case PARAM_ID_ENV_A_DECAY_2_TIME:
-			ENV_A_SetDecay2Time(paramVal); break;
-		case PARAM_ID_ENV_A_SUSTAIN_LEVEL:
-			ENV_A_SetSustainLevel(paramVal); break;
-		case PARAM_ID_ENV_A_RELEASE_TIME:
-			ENV_A_SetReleaseTime(paramVal); break;
-		case PARAM_ID_ENV_A_LEVELS_VELOCITY:
-			ENV_A_SetLevelVelocity(paramVal); break;
-		case PARAM_ID_ENV_A_ATTACK_VELOCITY:
-			ENV_A_SetAttackVelocity(paramVal); break;
-		case PARAM_ID_ENV_A_RELEASE_VELOCITY:
-			ENV_A_SetReleaseVelocity(paramVal); break;
+		case PARAM_ID_ENV_A_ATTACK_CURVE:			// Bipolar parameters directly sent to the TCD renderer
 		case PARAM_ID_ENV_A_LEVELS_KEY_TRK:
-			ENV_A_SetLevelKeyTrk(paramVal); break;
-		case PARAM_ID_ENV_A_TIMES_KEY_TRK:
-			ENV_A_SetTimeKeyTrk(paramVal); break;
-
-		case PARAM_ID_ENV_B_ATTACK_TIME:
-			ENV_B_SetAttackTime(paramVal); break;
+		case PARAM_ID_ENV_A_GAIN:
 		case PARAM_ID_ENV_B_ATTACK_CURVE:
-			ENV_B_SetAttackCurvature(paramVal); break;
-		case PARAM_ID_ENV_B_DECAY_1_TIME:
-			ENV_B_SetDecay1Time(paramVal); break;
-		case PARAM_ID_ENV_B_BREAKPOINT_LEVEL:
-			ENV_B_SetBreakpointLevel(paramVal); break;
-		case PARAM_ID_ENV_B_DECAY_2_TIME:
-			ENV_B_SetDecay2Time(paramVal); break;
-		case PARAM_ID_ENV_B_SUSTAIN_LEVEL:
-			ENV_B_SetSustainLevel(paramVal); break;
-		case PARAM_ID_ENV_B_RELEASE_TIME:
-			ENV_B_SetReleaseTime(paramVal); break;
-		case PARAM_ID_ENV_B_LEVELS_VELOCITY:
-			ENV_B_SetLevelVelocity(paramVal); break;
-		case PARAM_ID_ENV_B_ATTACK_VELOCITY:
-			ENV_B_SetAttackVelocity(paramVal); break;
-		case PARAM_ID_ENV_B_RELEASE_VELOCITY:
-			ENV_B_SetReleaseVelocity(paramVal); break;
 		case PARAM_ID_ENV_B_LEVELS_KEY_TRK:
-			ENV_B_SetLevelKeyTrk(paramVal); break;
-		case PARAM_ID_ENV_B_TIMES_KEY_TRK:
-			ENV_B_SetTimeKeyTrk(paramVal); break;
-
-		case PARAM_ID_ENV_C_ATTACK_TIME:
-			ENV_C_SetAttackTime(paramVal); break;
-		case PARAM_ID_ENV_C_ATTACK_CURVE:
-			ENV_C_SetAttackCurvature(paramVal); break;
-		case PARAM_ID_ENV_C_DECAY_1_TIME:
-			ENV_C_SetDecay1Time(paramVal); break;
-		case PARAM_ID_ENV_C_BREAKPOINT_LEVEL:
-			ENV_C_SetBreakpointLevel(paramVal); break;
-		case PARAM_ID_ENV_C_DECAY_2_TIME:
-			ENV_C_SetDecay2Time(paramVal); break;
-		case PARAM_ID_ENV_C_SUSTAIN_LEVEL:
-			ENV_C_SetSustainLevel(paramVal); break;
-		case PARAM_ID_ENV_C_RELEASE_TIME:
-			ENV_C_SetReleaseTime(paramVal); break;
-		case PARAM_ID_ENV_C_LEVELS_VELOCITY:
-			ENV_C_SetLevelVelocity(paramVal); break;
-		case PARAM_ID_ENV_C_ATTACK_VELOCITY:
-			ENV_C_SetAttackVelocity(paramVal); break;
-		case PARAM_ID_ENV_C_RELEASE_VELOCITY:
-			ENV_C_SetReleaseVelocity(paramVal); break;
-		case PARAM_ID_ENV_C_LEVELS_KEY_TRK:
-			ENV_C_SetLevelKeyTrk(paramVal); break;
-		case PARAM_ID_ENV_C_TIMES_KEY_TRK:
-			ENV_C_SetTimeKeyTrk(paramVal); break;
-
-		case PARAM_ID_ENV_A_GAIN:					// Bipolar parameters, REMAPPED and directly sent to the TCD renderer
-			MSG_SelectParameter(PARAM_SEND_ID_ENV_A_GAIN);
-			MSG_SetDestinationSigned(paramVal);
-			break;
-
 		case PARAM_ID_ENV_B_GAIN:
-			MSG_SelectParameter(PARAM_SEND_ID_ENV_B_GAIN);
-			MSG_SetDestinationSigned(paramVal);
-			break;
-
-		case PARAM_ID_OSC_A_PITCH_ENV:				// Bipolar parameters directly sent to the TCD renderer
+		case PARAM_ID_ENV_C_ATTACK_CURVE:
+		case PARAM_ID_ENV_C_BREAKPOINT_LEVEL:
+		case PARAM_ID_ENV_C_SUSTAIN_LEVEL:
+		case PARAM_ID_ENV_C_LEVELS_KEY_TRK:
+		case PARAM_ID_OSC_A_PHASE:
+		case PARAM_ID_OSC_A_PITCH_ENV:
 		case PARAM_ID_OSC_A_FLUCT_ENV:
 		case PARAM_ID_OSC_A_PM_SELF:
 		case PARAM_ID_OSC_A_PM_SELF_SHAPER:
@@ -381,6 +299,7 @@ static void ProcessBasicParam(uint32_t paramId, int32_t paramVal)
 		case PARAM_ID_OSC_A_PM_B_SHAPER:
 		case PARAM_ID_OSC_A_PM_FB:
 		case PARAM_ID_SHAPER_A_MIX:
+		case PARAM_ID_OSC_B_PHASE:
 		case PARAM_ID_OSC_B_PITCH_ENV:
 		case PARAM_ID_OSC_B_FLUCT_ENV:
 		case PARAM_ID_OSC_B_PM_SELF:
@@ -424,6 +343,7 @@ static void ProcessBasicParam(uint32_t paramId, int32_t paramVal)
 		case PARAM_ID_FLANGER_CROSS_FB:				// neuerdings bipolar
 		case PARAM_ID_FLANGER_MIX:
 		case PARAM_ID_ECHO_STEREO:
+		case PARAM_ID_MASTER_TUNE:
 			MSG_SelectParameter(paramId);
 			MSG_SetDestinationSigned(paramVal);
 			break;
@@ -756,7 +676,7 @@ static void ProcessPlayControl(uint32_t pcId, uint32_t pcVal, uint32_t behaviour
 
 void SetAllTimes(uint32_t time)				// Common smoothing or transition time for all audio parameters
 {
-	MSG_SelectParameter(51);
+	MSG_SelectParameter(0);
 	MSG_SelectMultipleParameters(310);
 	MSG_SetTime(time);
 }
@@ -918,10 +838,7 @@ void PARAM_ApplyPreset(uint16_t numParams, uint16_t* data)
 		usingTransitionTime = 1;
 	}
 
-	if (usingGlitchSuppression)
-	{
-		MSG_EnablePreload();
-	}
+	MSG_EnablePreload();
 
 	uint32_t paramId;
 
@@ -1101,6 +1018,8 @@ void PARAM_ApplyPreset(uint16_t numParams, uint16_t* data)
 	}
 
 	ADC_WORK_Resume();
+
+	MSG_ApplyPreloadedValues();			/// war vorher kurz vor dem Fade-In
 
 	if (usingGlitchSuppression)
 	{

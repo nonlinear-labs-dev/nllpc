@@ -239,11 +239,8 @@ void BB_MSG_ReceiveCallback(uint16_t type, uint16_t length, uint16_t* data)
 			case 8:											// Behaviour of Pedal 4
 				ADC_WORK_SetPedal4Behaviour(data[1]);			// 0: Non-Return, 1: Return to Zero, 2: Return to Center
 				break;
-			case 9:											// Factor for the increments when Ribbon 1 is in Relative mode
-				ADC_WORK_SetRibbon1RelFactor(data[1]);			// factor = data[1] / 256
-				break;
-			case 10:										// Factor for the increments when Ribbon 2 is in Relative mode
-				ADC_WORK_SetRibbon2RelFactor(data[1]);			// factor = data[1] / 256
+			case 9:											// Factor for the increments when a ribbon is in Relative mode
+				ADC_WORK_SetRibbonRelFactor(data[1]);			// factor = data[1] / 256
 				break;
 			case 11:										// Velocity Curve
 				POLY_Generate_VelTable(data[1]);					// Parameter: 0 = very soft ... 4 = very hard
@@ -255,6 +252,7 @@ void BB_MSG_ReceiveCallback(uint16_t type, uint16_t length, uint16_t* data)
 				ADC_WORK_Generate_AftertouchTable(data[1]); 	// 0: soft, 1: normal, 2: hard
 				break;
 			case 31:										// Bender Curve
+				ADC_WORK_Generate_BenderTable(data[1]);			// 0: soft, 1: normal, 2: hard
 				break;
 			case 32:										// Pitchbend on Pressed Keys
 				break;

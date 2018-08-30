@@ -15,15 +15,11 @@
 #include "nl_tcd_valloc.h"
 
 
-static int32_t v_UnisonIdx[NUM_VOICES] = {0};
+static int32_t v_UnisonIdx[NUM_VOICES] = {};
+static int32_t v_UnisonPhase[NUM_VOICES] = {};
 
-static int32_t v_KeyPos[NUM_VOICES] = {0};
+static int32_t v_KeyPos[NUM_VOICES] = {};
 
-static int32_t v_OscAPhase[NUM_VOICES] = {0};
-static int32_t v_OscBPhase[NUM_VOICES] = {0};
-
-static int32_t e_OscAPhase;
-static int32_t e_OscBPhase;
 static int32_t e_KeyPan;
 
 static int32_t e_UnisonVoices;
@@ -31,9 +27,7 @@ static int32_t e_UnisonPan;
 static int32_t e_UnisonDetune;
 static int32_t e_UnisonPhase;
 
-static int32_t e_MasterTune;
 static int32_t e_NoteShift;
-static int32_t e_Tune;
 
 static uint32_t e_ScaleBase;
 static int16_t e_ScaleOffset[12];
@@ -84,7 +78,7 @@ void POLY_Generate_VelTable(uint32_t curve)
 
 	for (i = 0; i <= i_max; i++)
 	{
-        velTable[i] = (uint32_t)( ( vel_max + vel_max / (b * i_max) ) / (1.f + b * i) - vel_max / (b * i_max) + 0.5f );
+		velTable[i] = (uint32_t)( ( vel_max + vel_max / (b * i_max) ) / (1.0 + b * i) - vel_max / (b * i_max) + 0.5 );
 	}
 }
 
@@ -101,10 +95,9 @@ void POLY_Init(void)
 	{
 		v_KeyPos[v] = 0;
 		v_UnisonIdx[v] = 0;
+		v_UnisonPhase[v] = 0;
 	}
 
-	e_OscAPhase = 0;
-	e_OscBPhase = 0;
 	e_KeyPan = 0;
 
 	e_UnisonVoices = 1;
@@ -112,9 +105,7 @@ void POLY_Init(void)
 	e_UnisonDetune = 0;
 	e_UnisonPhase = 0;
 
-	e_MasterTune = 0;
 	e_NoteShift = 0;
-	e_Tune = 0;
 
 	e_ScaleBase = 0;
 
@@ -177,7 +168,7 @@ void POLY_KeyDown(uint32_t allocVoice, uint32_t key, uint32_t timeInUs)
 
 	//--- Calc pitch
 
-	pitch = (key - 24) * 1000 + e_Tune + e_ScaleOffset[(key + e_ScaleBase) % 12];	/// besser v_Offset[NUM_VOICES], um klingende Noten per MasterTune/Unison korrekt verstimmen zu können
+	pitch = (key - 24) * 1000 + e_NoteShift + e_ScaleOffset[(key + e_ScaleBase) % 12];
 
 
 	//--- Calc On velocity
@@ -203,45 +194,38 @@ void POLY_KeyDown(uint32_t allocVoice, uint32_t key, uint32_t timeInUs)
 	minVoice = allocVoice * e_UnisonVoices;
 	maxVoice = minVoice + e_UnisonVoices;
 
-	MSG_EnablePreload();	// the whole block of messages starting a note is preloaded
+	MSG_KeyPreload();	// the whole block of messages starting a note is preloaded
+
+	MSG_SelectVoice(minVoice);
 
 	for (voice = minVoice; voice < maxVoice; voice++)
 	{
-		MSG_SelectVoice(voice);
+		v_KeyPos[voice] = key;
 
 		//-------------- Phases
 
-		MSG_SelectParameter(PARAM_ID_OSC_A_PHASE_POLY);
-		MSG_SetDestinationSigned(v_OscAPhase[voice]);
-
-		MSG_SelectParameter(PARAM_ID_OSC_B_PHASE_POLY);
-		MSG_SetDestinationSigned(v_OscBPhase[voice]);
+		MSG_SetDestinationSigned(v_UnisonPhase[voice]);
 
 		//------------- NotePitch
 
 		out = pitch + v_UnisonIdx[voice] * e_UnisonDetune;
 
-		ENV_SetVoicePitch(voice, out);
-
-		MSG_SelectParameter(PARAM_ID_NOTEPITCH);
 		MSG_SetDestinationSigned(out);
-
-		MSG_SelectParameter(PARAM_ID_NOTE_ON_VS);	// setting the Comb Filter to a new notepitch including information about voice stealing (> 0)
-		MSG_SetDestinationSigned(vel);				/// for voice stealing it would be -vel /// detection not yet implemented !!!
 
 		//-------------- VoicePan
 
 		out = (key - 30) * e_KeyPan + v_UnisonIdx[voice] * e_UnisonPan;
 
-		MSG_SelectParameter(PARAM_ID_VOICE_PAN);
 		MSG_SetDestinationSigned(out);
 
-		v_KeyPos[voice] = key;
+		//-------------- Voice Steal
+
+		MSG_SetDestinationSigned(0);				/// detection not yet implemented !!!
+
+		//-------------- Key Down
+
+		MSG_KeyDown(vel);
 	}
-
-	MSG_SelectVoiceBlock(minVoice);
-
-	ENV_Start(minVoice, vel);
 
 	MSG_ApplyPreloadedValues();
 }
@@ -251,7 +235,9 @@ void POLY_KeyDown(uint32_t allocVoice, uint32_t key, uint32_t timeInUs)
 void POLY_KeyUp(uint32_t allocVoice, uint32_t timeInUs)
 {
 	uint32_t vel;
+	uint32_t voice;
 	uint32_t minVoice;
+	uint32_t maxVoice;
 
 
 	//--- Calc Off velocity
@@ -275,12 +261,16 @@ void POLY_KeyUp(uint32_t allocVoice, uint32_t timeInUs)
 
 
 	minVoice = allocVoice * e_UnisonVoices;
+	maxVoice = minVoice + e_UnisonVoices;
 
-	MSG_EnablePreload();	// the whole block of messages ending a note is preloaded
+	MSG_KeyPreload();	// the whole block of messages ending a note is preloaded
 
-	MSG_SelectVoiceBlock(minVoice);
+	MSG_SelectVoice(minVoice);
 
-	ENV_Release(minVoice, vel);
+	for (voice = minVoice; voice < maxVoice; voice++)
+	{
+		MSG_KeyUp(vel);
+	}
 
 	MSG_ApplyPreloadedValues();
 }
@@ -296,17 +286,14 @@ void SetUnisonIdx(uint32_t voice, int32_t unisonIdx)
 
 	//------------- NotePitch
 
-	out = (v_KeyPos[voice] - 24) * 1000 + e_Tune + unisonIdx * e_UnisonDetune;
-
-	ENV_SetVoicePitch(voice, out);
+	out = (v_KeyPos[voice] - 24) * 1000 + e_NoteShift + unisonIdx * e_UnisonDetune;
 
 	MSG_SelectParameter(PARAM_ID_NOTEPITCH);
 	MSG_SetDestinationSigned(out);
 
 	//------------- Phases
 
-	v_OscAPhase[voice] = e_OscAPhase + unisonIdx * e_UnisonPhase;
-	v_OscBPhase[voice] = e_OscBPhase + unisonIdx * e_UnisonPhase;
+	v_UnisonPhase[voice] = unisonIdx * e_UnisonPhase;
 
 	//-------------- VoicePan
 
@@ -333,59 +320,13 @@ void POLY_SetUnisonPhase(int32_t value)
 
 		for (v = 0; v < NUM_VOICES; v++)
 		{
-			v_OscAPhase[v] = e_OscAPhase + value * v_UnisonIdx[v];
-		}
-
-		for (v = 0; v < NUM_VOICES; v++)
-		{
-			v_OscBPhase[v] = e_OscBPhase + value * v_UnisonIdx[v];
+			v_UnisonPhase[v] = value * v_UnisonIdx[v];
 		}
 	}
 
 	e_UnisonPhase = value;
 }
 
-
-
-void POLY_SetOscAPhase(int32_t value)
-{
-	uint32_t v;
-
-	for (v = 0; v < NUM_VOICES; v++)
-	{
-		if (e_UnisonVoices > 1)
-		{
-			v_OscAPhase[v] = value + e_UnisonPhase * v_UnisonIdx[v];
-		}
-		else
-		{
-			v_OscAPhase[v] = value;
-		}
-	}
-
-	e_OscAPhase = value;
-}
-
-
-
-void POLY_SetOscBPhase(int32_t value)
-{
-	uint32_t v;
-
-	for (v = 0; v < NUM_VOICES; v++)
-	{
-		if (e_UnisonVoices > 1)
-		{
-			v_OscBPhase[v] = value + e_UnisonPhase * v_UnisonIdx[v];
-		}
-		else
-		{
-			v_OscBPhase[v] = value;
-		}
-	}
-
-	e_OscBPhase = value;
-}
 
 
 
@@ -436,29 +377,6 @@ void POLY_SetKeyPan(int32_t value)
 
 
 
-void POLY_SetMasterTune(int32_t value)
-{
-	uint32_t v;
-	int32_t out;
-
-	e_MasterTune = value * 10;				// scaling to the high resolution (0.1 Cent) of Unison Detune
-	e_Tune = e_MasterTune + e_NoteShift;
-
-	MSG_SelectParameter(PARAM_ID_NOTEPITCH);
-
-	for (v = 0; v < NUM_VOICES; v++)										/// eigentlich ein Fall für List-Mode !!!
-	{
-		out = (v_KeyPos[v] - 24) * 1000 + e_Tune + v_UnisonIdx[v] * e_UnisonDetune;
-
-		ENV_SetVoicePitch(v, out);
-
-		MSG_SelectVoice(v);
-		MSG_SetDestinationSigned(out);
-	}
-}
-
-
-
 void POLY_SetUnisonDetune(int32_t value)
 {
 	e_UnisonDetune = value;
@@ -472,9 +390,7 @@ void POLY_SetUnisonDetune(int32_t value)
 
 		for (v = 0; v < NUM_VOICES; v++)									/// eigentlich ein Fall für List-Mode !!!
 		{
-			out = (v_KeyPos[v] - 24) * 1000 + e_Tune + v_UnisonIdx[v] * e_UnisonDetune;
-
-			ENV_SetVoicePitch(v, out);
+			out = (v_KeyPos[v] - 24) * 1000 + e_NoteShift + v_UnisonIdx[v] * e_UnisonDetune;
 
 			MSG_SelectVoice(v);
 			MSG_SetDestinationSigned(out);
@@ -506,11 +422,8 @@ void POLY_SetUnisonVoices(int32_t value)
 			}
 
 			SetUnisonIdx(v, v_UnisonIdx[v]);
-
-			ENV_Release(v, 0);
 		}
 
-		ENV_SetUnisonVoices(e_UnisonVoices);
 		MSG_SetUnisonVoices(e_UnisonVoices);
 	}
 }
@@ -527,6 +440,4 @@ void POLY_SetNoteShift(uint32_t shift)
 	{
 		e_NoteShift = shift * 1000;
 	}
-
-	e_Tune = e_MasterTune + e_NoteShift;
 }
