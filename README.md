@@ -10,6 +10,10 @@ OpenOCD set's up as GDB server. So you can use any GDB client, to debug. Even ov
 `cmake ../  -DCMAKE_TOOLCHAIN_FILE=../cmake/arm-gcc-toolchain.cmake -DCMAKE_BUILD_TYPE=Debug`
 `make`
 
+## Flash Programming:
+
+You can use OpenOCD to program your flash. Either by using OpenOCD as a [GDB Server](http://openocd.org/doc/html/GDB-and-OpenOCD.html#programmingusinggdb) or by using OpenOCD's own [Flash Programming Commands](http://openocd.org/doc/html/Flash-Commands.html#flashprogrammingcommands)
+
 ## Debugging:
 
 `openocd -f openocd/nonlinear-lpc.cfg`
