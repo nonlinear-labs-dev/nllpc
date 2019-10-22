@@ -14,8 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TO_SEND_SIZE 256
-static uint8_t to_send[TO_SEND_SIZE];
+static uint8_t* to_send = NULL;
 
 static LPC_USARTn_Type* dbg_uart;
 static uint32_t dbg_uart_baudrate;
@@ -46,7 +45,8 @@ void (* const DBG_Pod_Off[8])(void) = {
 
 static void DBG_Callback(uint32_t status)
 {
-    (void)status;
+	free(to_send);
+	to_send = NULL;
 }
 
 /******************************************************************************/
@@ -83,9 +83,10 @@ uint32_t DBG_Write(char* str)
 	uint32_t i;
 	uint32_t len = strlen(str);
 
-    if (len > TO_SEND_SIZE)
-        while(1); // If we end up here, to_send is not big enought
+	if(to_send != NULL)
+		return 0;
 
+	to_send = (uint8_t*)malloc(len*sizeof(uint8_t));
 	for(i=0; i<len; i++)
 		to_send[i] = (uint8_t)str[i];
 

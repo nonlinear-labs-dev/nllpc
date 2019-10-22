@@ -1,5 +1,5 @@
 #include <espi/nl_espi_io.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include "nl_espi_core.h"
 
 
@@ -8,8 +8,7 @@ static uint8_t    rxb[ESPI_SHIFT_MAX_BYTES];
 static uint8_t    txb[ESPI_SHIFT_MAX_BYTES];
 static ESPI_IO_T* polled_io = NULL;
 
-#define NREG_BUFFER_SIZE 128
-static uint8_t nreg_buffer[NREG_BUFFER_SIZE];
+
 
 void ESPI_IO_Init(ESPI_IO_T* io,
 						uint8_t dir,
@@ -21,12 +20,7 @@ void ESPI_IO_Init(ESPI_IO_T* io,
 	io->espi_port   = port;
 	io->espi_dev    = dev;
 	io->io			= dir;
-
-    if (nreg > NREG_BUFFER_SIZE)
-        while(1);
-//	io->val = (uint8_t*)malloc(nreg*sizeof(uint8_t));
-
-    io->val = nreg_buffer;
+	io->val = (uint8_t*)malloc(nreg*sizeof(uint8_t));
 
 	int i;
 	for(i=0; i< nreg; i++)

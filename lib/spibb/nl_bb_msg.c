@@ -219,7 +219,7 @@ void BB_MSG_ReceiveCallback(uint16_t type, uint16_t length, uint16_t* data)
 				ADC_WORK_SetRibbon2Behaviour(data[1]);			// 0: Abs + Non-Return, 1: Abs + Return, 2: Rel + Non-Return, 3: Rel + Return
 				break;
 			case 2:											// Note Shift
-				POLY_SetNoteShift(data[1]);						// (+/-)0...48 (uint16 with sign bit)
+				PARAM_SetNoteShift(data[1]);						// (+/-)0...48 (uint16 with sign bit)
 				break;
 			case 3:											// "Unit Mode" - Ribbon 1 can be switched between Edit and Play mode.
 				ADC_WORK_SetRibbon1EditMode(data[1]);			// 0: Play, 1: Parameter Edit

@@ -13,9 +13,6 @@
 #include "cmsis/lpc43xx_cgu.h"
 #include "drv/nl_cgu.h"
 
-#define RX_BUFFER_SIZE 512
-static uint8_t global_rx_buffer[RX_BUFFER_SIZE];
-
 /**********************************************************************
  * @brief		Initializes the SPI-DMA driver for the desired SSP
  * @param[in]	SSPx	Pointer to selected SSP peripheral, should be:
@@ -216,6 +213,7 @@ uint32_t SPI_DMA_SendReceive(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint8_t* rx_
 uint32_t SPI_DMA_SendReceiveBlocking(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint8_t* rx_buff, uint32_t len,
 		TransferCallback Callback)
 {
+	uint8_t isalloc = 0;
 	uint8_t ch;
 
 	if(SSPx == LPC_SSP0)
@@ -224,18 +222,26 @@ uint32_t SPI_DMA_SendReceiveBlocking(LPC_SSPn_Type *SSPx, uint8_t* tx_buff, uint
 		ch = GPDMA_SPI_1_RX_CHANNEL;
 	else return 0;
 
-    if(rx_buff == NULL)
-        rx_buff = global_rx_buffer;
+	if(rx_buff == NULL) {
+		rx_buff = (uint8_t*)malloc(sizeof(uint8_t)*len);
+		isalloc = 1;
+	}
 
-    if(SPI_DMA_Send(SSPx, tx_buff, len, NULL) == 0)
+	if(SPI_DMA_Send(SSPx, tx_buff, len, NULL) == 0) {
+		if(isalloc)
+			free(rx_buff);
 		return 0;
-
-    if(SPI_DMA_Receive(SSPx, rx_buff, len, Callback) == 0)
+	}
+	if(SPI_DMA_Receive(SSPx, rx_buff, len, Callback) == 0) {
+		if(isalloc)
+			free(rx_buff);
 		return 0;
+	}
 
 	while(NL_GPDMA_ChannelBusy(ch))
 			NL_GPDMA_Poll();
-
+	if(isalloc)
+		free(rx_buff);
 	return len;
 }
 

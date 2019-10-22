@@ -29,14 +29,7 @@ void POLY_Init(void);
 void POLY_KeyDown(uint32_t voice, uint32_t key, uint32_t timeInUs);
 void POLY_KeyUp(uint32_t voice, uint32_t timeInUs);
 
-void POLY_SetKeyPan(int32_t value);
-
 void POLY_SetUnisonVoices(int32_t numUnisonVoices);
-void POLY_SetUnisonDetune(int32_t value);
-void POLY_SetUnisonPhase(int32_t value);
-void POLY_SetUnisonPan(int32_t value);
-
-void POLY_SetNoteShift(uint32_t shift);
 
 void POLY_UseScale(uint32_t use);
 void POLY_SetScaleBase(uint32_t baseKey);

@@ -268,19 +268,7 @@ static void ProcessBasicParam(uint32_t paramId, int32_t paramVal)
 {
 	switch (paramId)
 	{
-		case PARAM_ID_KEY_PAN:							// Parameters controlling the polyphonic TCD generation
-			POLY_SetKeyPan(paramVal); break;
-
-		case PARAM_ID_UNISON_VOICES:
-			POLY_SetUnisonVoices(paramVal); break;
-		case PARAM_ID_UNISON_DETUNE:
-			POLY_SetUnisonDetune(paramVal); break;
-		case PARAM_ID_UNISON_PHASE:
-			POLY_SetUnisonPhase(paramVal); break;
-		case PARAM_ID_UNISON_PAN:
-			POLY_SetUnisonPan(paramVal); break;
-
-		case PARAM_ID_ENV_A_ATTACK_CURVE:			// Bipolar parameters directly sent to the TCD renderer
+		case PARAM_ID_ENV_A_ATTACK_CURVE:			// bipolar parameters directly sent to the TCD renderer
 		case PARAM_ID_ENV_A_LEVELS_KEY_TRK:
 		case PARAM_ID_ENV_A_GAIN:
 		case PARAM_ID_ENV_B_ATTACK_CURVE:
@@ -348,7 +336,14 @@ static void ProcessBasicParam(uint32_t paramId, int32_t paramVal)
 			MSG_SetDestinationSigned(paramVal);
 			break;
 
-		default:									// Unipolar parameters directly sent to the TCD renderer
+		case PARAM_ID_UNISON_VOICES:				// number of Unison voices, applied in POLY and VALLOC and sent to the TCD renderer
+			POLY_SetUnisonVoices(paramVal);
+			MSG_Reset(1);							// reset the envelopes
+			MSG_SelectParameter(paramId);
+			MSG_SetDestination(paramVal);
+			break;
+
+		default:									// unipolar parameters directly sent to the TCD renderer
 			MSG_SelectParameter(paramId);
 			MSG_SetDestination(paramVal);
 	}
@@ -1060,5 +1055,23 @@ void PARAM_SetEditSmoothingTime(uint32_t time)
 void PARAM_SetGlitchSuppression(uint32_t mode)
 {
 	usingGlitchSuppression = mode;
+}
+
+
+void PARAM_SetNoteShift(uint32_t shift)		// kommt als Setting (uint16 with sign bit) vom BB
+{
+	int32_t noteShift;
+
+	if (shift & 0x8000)
+	{
+		noteShift = -(shift & 0x7FFF);
+	}
+	else
+	{
+		noteShift = shift;
+	}
+
+	MSG_SelectParameter(PARAM_ID_NOTE_SHIFT);
+	MSG_SetDestinationSigned(noteShift);
 }
 

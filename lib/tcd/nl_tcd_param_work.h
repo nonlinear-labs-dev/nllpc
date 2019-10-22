@@ -408,14 +408,11 @@
 #define PARAM_ID_UNISON_PHASE			252
 #define PARAM_ID_UNISON_PAN				253
 
+#define PARAM_ID_NOTE_SHIFT				338
+
 
 //----- Non-UI parameters
 
-#define PARAM_ID_UNISON_PHASE_POLY      400
-
-
-#define PARAM_ID_NOTEPITCH				406
-#define PARAM_ID_VOICE_PAN				407
 #define PARAM_ID_ENV_C_RATE				408
 #define PARAM_ID_NOTE_ON_VS				409
 
@@ -433,5 +430,7 @@ void PARAM_ApplyPreset(uint16_t length, uint16_t* data);
 void PARAM_SetTransitionTime(uint32_t time);
 void PARAM_SetEditSmoothingTime(uint32_t time);
 void PARAM_SetGlitchSuppression(uint32_t mode);
+
+void PARAM_SetNoteShift(uint32_t shift);
 
 #endif /* NL_TCD_PARAM_WORK_H_ */

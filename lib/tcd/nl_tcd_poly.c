@@ -15,19 +15,9 @@
 #include "nl_tcd_valloc.h"
 
 
-static int32_t v_UnisonIdx[NUM_VOICES] = {};
-static int32_t v_UnisonPhase[NUM_VOICES] = {};
-
 static int32_t v_KeyPos[NUM_VOICES] = {};
 
-static int32_t e_KeyPan;
-
 static int32_t e_UnisonVoices;
-static int32_t e_UnisonPan;
-static int32_t e_UnisonDetune;
-static int32_t e_UnisonPhase;
-
-static int32_t e_NoteShift;
 
 static uint32_t e_ScaleBase;
 static int16_t e_ScaleOffset[12];
@@ -94,18 +84,9 @@ void POLY_Init(void)
 	for (v = 0; v < NUM_VOICES; v++)
 	{
 		v_KeyPos[v] = 0;
-		v_UnisonIdx[v] = 0;
-		v_UnisonPhase[v] = 0;
 	}
 
-	e_KeyPan = 0;
-
 	e_UnisonVoices = 1;
-	e_UnisonPan = 0;
-	e_UnisonDetune = 0;
-	e_UnisonPhase = 0;
-
-	e_NoteShift = 0;
 
 	e_ScaleBase = 0;
 
@@ -158,17 +139,13 @@ void POLY_SetScaleOffset(uint32_t paramId, uint32_t offset)
 
 void POLY_KeyDown(uint32_t allocVoice, uint32_t key, uint32_t timeInUs)
 {
-	int32_t out;
 	int32_t pitch;
 	uint32_t vel;
-	uint32_t voice;
-	uint32_t minVoice;
-	uint32_t maxVoice;
 
 
 	//--- Calc pitch
 
-	pitch = (key - 24) * 1000 + e_NoteShift + e_ScaleOffset[(key + e_ScaleBase) % 12];
+	pitch = (key - 24) * 1000 + e_ScaleOffset[(key + e_ScaleBase) % 12];
 
 
 	//--- Calc On velocity
@@ -190,44 +167,11 @@ void POLY_KeyDown(uint32_t allocVoice, uint32_t key, uint32_t timeInUs)
 		vel = (velTable[index] * (8192 - fract) + velTable[index + 1] * fract) >> 13;	// (0...4096) * 8192 / 8192
 	}
 
+	MSG_KeyVoice(0, allocVoice * e_UnisonVoices);	// selects voice(s) and parameter 416 (Base Pitch)
 
-	minVoice = allocVoice * e_UnisonVoices;
-	maxVoice = minVoice + e_UnisonVoices;
+	MSG_SetDestinationSigned(pitch); 	// NotePitch
 
-	MSG_KeyPreload();	// the whole block of messages starting a note is preloaded
-
-	MSG_SelectVoice(minVoice);
-
-	for (voice = minVoice; voice < maxVoice; voice++)
-	{
-		v_KeyPos[voice] = key;
-
-		//-------------- Phases
-
-		MSG_SetDestinationSigned(v_UnisonPhase[voice]);
-
-		//------------- NotePitch
-
-		out = pitch + v_UnisonIdx[voice] * e_UnisonDetune;
-
-		MSG_SetDestinationSigned(out);
-
-		//-------------- VoicePan
-
-		out = (key - 30) * e_KeyPan + v_UnisonIdx[voice] * e_UnisonPan;
-
-		MSG_SetDestinationSigned(out);
-
-		//-------------- Voice Steal
-
-		MSG_SetDestinationSigned(0);				/// detection not yet implemented !!!
-
-		//-------------- Key Down
-
-		MSG_KeyDown(vel);
-	}
-
-	MSG_ApplyPreloadedValues();
+	MSG_KeyDown(vel);
 }
 
 
@@ -235,9 +179,6 @@ void POLY_KeyDown(uint32_t allocVoice, uint32_t key, uint32_t timeInUs)
 void POLY_KeyUp(uint32_t allocVoice, uint32_t timeInUs)
 {
 	uint32_t vel;
-	uint32_t voice;
-	uint32_t minVoice;
-	uint32_t maxVoice;
 
 
 	//--- Calc Off velocity
@@ -252,151 +193,20 @@ void POLY_KeyUp(uint32_t allocVoice, uint32_t timeInUs)
 	}
 	else
 	{
-		timeInUs -= 2500;	 							// shifting the curve to the left adjusting the input to zero for a time of 2.5 ms
+		timeInUs -= 2500;	 						// shifting the curve to the left adjusting the input to zero for a time of 2.5 ms
 
 		uint32_t fract = timeInUs & 0x1FFF;												// lower 13 bits used for interpolation
 		uint32_t index = timeInUs >> 13;												// upper 6 bits (0...63) used as index in the table
 		vel = (velTable[index] * (8192 - fract) + velTable[index + 1] * fract) >> 13;	// (0...4096) * 8192 / 8192
 	}
 
+	MSG_KeyVoice(0, allocVoice * e_UnisonVoices);	// selects voice(s)
 
-	minVoice = allocVoice * e_UnisonVoices;
-	maxVoice = minVoice + e_UnisonVoices;
-
-	MSG_KeyPreload();	// the whole block of messages ending a note is preloaded
-
-	MSG_SelectVoice(minVoice);
-
-	for (voice = minVoice; voice < maxVoice; voice++)
-	{
-		MSG_KeyUp(vel);
-	}
-
-	MSG_ApplyPreloadedValues();
+  	MSG_KeyUp(vel);
 }
-
-
-//==========  Called by POLY_SetUnisonVoices():
-
-void SetUnisonIdx(uint32_t voice, int32_t unisonIdx)
-{
-	int32_t out;
-
-	MSG_SelectVoice(voice);									/// eigentlich ein Fall für den List-Mode (Iteration über alle Voices)
-
-	//------------- NotePitch
-
-	out = (v_KeyPos[voice] - 24) * 1000 + e_NoteShift + unisonIdx * e_UnisonDetune;
-
-	MSG_SelectParameter(PARAM_ID_NOTEPITCH);
-	MSG_SetDestinationSigned(out);
-
-	//------------- Phases
-
-	v_UnisonPhase[voice] = unisonIdx * e_UnisonPhase;
-
-	//-------------- VoicePan
-
-	out = (v_KeyPos[voice] - 30) * e_KeyPan + unisonIdx * e_UnisonPan;
-
-	MSG_SelectParameter(PARAM_ID_VOICE_PAN);
-	MSG_SetDestinationSigned(out);
-
-	//-----------------
-
-	v_UnisonIdx[voice] = unisonIdx;
-}
-
 
 
 //================= Parameter-Events:
-
-
-void POLY_SetUnisonPhase(int32_t value)
-{
-	if (e_UnisonVoices > 1)
-	{
-		uint32_t v;
-
-		for (v = 0; v < NUM_VOICES; v++)
-		{
-			v_UnisonPhase[v] = value * v_UnisonIdx[v];
-		}
-	}
-
-	e_UnisonPhase = value;
-}
-
-
-
-
-void POLY_SetUnisonPan(int32_t value)
-{
-	if (e_UnisonVoices > 1)
-	{
-		uint32_t v;
-		int32_t out;
-
-		MSG_SelectParameter(PARAM_ID_VOICE_PAN);
-
-		for (v = 0; v < NUM_VOICES; v++)										/// eigentlich ein Fall für List-Mode !!!
-		{
-			out = (v_KeyPos[v] - 30) * e_KeyPan + v_UnisonIdx[v] * value;
-
-			MSG_SelectVoice(v);
-			MSG_SetDestinationSigned(out);
-		}
-	}
-
-	e_UnisonPan = value;
-}
-
-
-/*****************************************************************************
-*	@brief  POLY_SetKeyPan - ...
-*   @param  value: key-panning amount, range: 0 ... 16000 (0 ... 100 %)
-******************************************************************************/
-
-void POLY_SetKeyPan(int32_t value)
-{
-	uint32_t v;
-	int32_t out;
-
-	e_KeyPan = (value * 17) >> 10;			// 17 / 1024 = approximately 1/60
-
-	MSG_SelectParameter(PARAM_ID_VOICE_PAN);
-
-	for (v = 0; v < NUM_VOICES; v++)											/// eigentlich ein Fall für List-Mode !!!
-	{
-		out = (v_KeyPos[v] - 30) * e_KeyPan + v_UnisonIdx[v] * e_UnisonPan;
-
-		MSG_SelectVoice(v);
-		MSG_SetDestinationSigned(out);
-	}
-}
-
-
-
-void POLY_SetUnisonDetune(int32_t value)
-{
-	e_UnisonDetune = value;
-
-	if (e_UnisonVoices > 1)
-	{
-		uint32_t v;
-		int32_t out;
-
-		MSG_SelectParameter(PARAM_ID_NOTEPITCH);
-
-		for (v = 0; v < NUM_VOICES; v++)									/// eigentlich ein Fall für List-Mode !!!
-		{
-			out = (v_KeyPos[v] - 24) * 1000 + e_NoteShift + v_UnisonIdx[v] * e_UnisonDetune;
-
-			MSG_SelectVoice(v);
-			MSG_SetDestinationSigned(out);
-		}
-	}
-}
 
 
 
@@ -407,37 +217,5 @@ void POLY_SetUnisonVoices(int32_t value)
 		e_UnisonVoices = value;
 
 		VALLOC_Init((uint32_t)(NUM_VOICES / e_UnisonVoices));
-
-		uint32_t v;
-
-		for (v = 0; v < NUM_VOICES; v++)
-		{
-			if (e_UnisonVoices % 2)		// odd
-			{
-				v_UnisonIdx[v] = (v % e_UnisonVoices) - (int32_t)(e_UnisonVoices / 2);		// e.g.: -1, 0, 1
-			}
-			else						// even
-			{
-				v_UnisonIdx[v] = (v % e_UnisonVoices) + 1 - (int32_t)(e_UnisonVoices / 2);	// e.g.: -1, 0, 1, 2   /// besser um -0.5 verschieben ?
-			}
-
-			SetUnisonIdx(v, v_UnisonIdx[v]);
-		}
-
-		MSG_SetUnisonVoices(e_UnisonVoices);
-	}
-}
-
-
-
-void POLY_SetNoteShift(uint32_t shift)
-{
-	if (shift & 0x8000)
-	{
-		e_NoteShift = -(shift & 0x7FFF) * 1000;
-	}
-	else
-	{
-		e_NoteShift = shift * 1000;
 	}
 }

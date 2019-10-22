@@ -30,7 +30,6 @@
 /******************************************************************************/
 
 static int32_t	oldVoice = -1;
-static int32_t	oldVoiceBlock = -1;
 static int32_t	oldParameter = -1;
 
 static int32_t	multipleVoices = 0;
@@ -42,8 +41,6 @@ static uint32_t buf = 0;									// Counts the used bytes of the bulk buffer
 static uint32_t writeBuffer = 0;
 
 static uint8_t midiUSBConfigured = 0;
-
-static uint32_t unisonVoices = 1;
 
 
 /******************************************************************************/
@@ -196,53 +193,6 @@ void MSG_SelectMultipleVoices(uint32_t v_last)
 		}
 
 		multipleVoices = 1;
-	}
-}
-
-
-/*****************************************************************************
-*	@brief 	MSG_SelectVoiceBlock - selects the necessary voices for Unison
-*   @param  v: Id (14 bits) of the first of a block of voices
-******************************************************************************/
-
-void MSG_SelectVoiceBlock(uint32_t v_first)
-{
-	if ((multipleVoices == 0) || (v_first != oldVoiceBlock))		// avoid re-selecting the same voice block
-	{
-		if (v_first > 0x3FFF - NUM_VOICES)
-		{
-			v_first = 0x3FFF - NUM_VOICES;									// clip to 14 bits
-		}
-																	// "SelectVoice" message
-		buff[writeBuffer][buf++] = 0x08;									// MIDI status 8
-		buff[writeBuffer][buf++] = 0x80;									// MIDI status 8, MIDI channel 0  (V)
-		buff[writeBuffer][buf++] = v_first >> 7;							// first 7 bits
-		buff[writeBuffer][buf++] = v_first & 0x7F;							// second 7 bits
-
-		if (buf == BUFFER_SIZE)
-		{
-			MSG_SendMidiBuffer();
-		}
-
-		if (unisonVoices > 1)
-		{
-			uint32_t v_last;
-			v_last = v_first + unisonVoices - 1;
-																	// "SelectMultipleVoices" message
-			buff[writeBuffer][buf++] = 0x09;								// MIDI status 9
-			buff[writeBuffer][buf++] = 0x90;								// MIDI status 9, MIDI channel 0  (VM)
-			buff[writeBuffer][buf++] = v_last >> 7;							// first 7 bits
-			buff[writeBuffer][buf++] = v_last & 0x7F;						// second 7 bits
-
-			if (buf == BUFFER_SIZE)
-			{
-				MSG_SendMidiBuffer();
-			}
-
-			multipleVoices = 1;
-		}
-
-		oldVoiceBlock = v_first;
 	}
 }
 
@@ -545,17 +495,39 @@ void MSG_SetDestination(uint32_t d)
 
 
 /*****************************************************************************
-*	@brief  MSG_KeyDown
-*	Used to start a note
-*   @param  v: velocity value (0...4095), 12 bit (14 bits would be possible)
+*	@brief  MSG_KeyVoice
+*	Used to transfer the index of the allocated voice
+*   @param  steal: (0: no, 1: yes), voice: index (0...19, 13 bits available)
 ******************************************************************************/
 
-void MSG_KeyDown(uint32_t v)
+void MSG_KeyVoice(uint32_t steal, uint32_t voice)
+{
+	uint32_t keyVoice = (steal ? 1 : 0) + (voice << 1);
+
+	buff[writeBuffer][buf++] = 0x0B;										// MIDI status B
+	buff[writeBuffer][buf++] = 0xB7;										// MIDI status B, MIDI channel 7  (KV)
+	buff[writeBuffer][buf++] = keyVoice >> 7;								// first 7 bits
+	buff[writeBuffer][buf++] = keyVoice & 0x7F;								// second 7 bits
+
+	if (buf == BUFFER_SIZE)
+	{
+		MSG_SendMidiBuffer();
+	}
+}
+
+
+/*****************************************************************************
+*	@brief  MSG_KeyDown
+*	Used to start a note
+*   @param  v: velocity value (0...4095, 14 bits would be possible)
+******************************************************************************/
+
+void MSG_KeyDown(uint32_t vel)
 {
 	buff[writeBuffer][buf++] = 0x09;										// MIDI status 9
 	buff[writeBuffer][buf++] = 0x97;										// MIDI status 9, MIDI channel 7  (KD)
-	buff[writeBuffer][buf++] = v >> 7;										// first 7 bits
-	buff[writeBuffer][buf++] = v & 0x7F;									// second 7 bits
+	buff[writeBuffer][buf++] = vel >> 7;									// first 7 bits
+	buff[writeBuffer][buf++] = vel & 0x7F;									// second 7 bits
 
 	if (buf == BUFFER_SIZE)
 	{
@@ -567,15 +539,15 @@ void MSG_KeyDown(uint32_t v)
 /*****************************************************************************
 *	@brief  MSG_KeyUp
 *	Used to start the release phase of a note
-*   @param  v: velocity value (0...4095), 12 bit (14 bits would be possible)
+*   @param  v: velocity value (0...4095, 14 bits would be possible)
 ******************************************************************************/
 
-void MSG_KeyUp(uint32_t v)
+void MSG_KeyUp(uint32_t vel)
 {
 	buff[writeBuffer][buf++] = 0x08;										// MIDI status 8
-	buff[writeBuffer][buf++] = 0x87;										// MIDI status 8, MIDI channel 7  (D)
-	buff[writeBuffer][buf++] = v >> 7;										// first 7 bits
-	buff[writeBuffer][buf++] = v & 0x7F;									// second 7 bits
+	buff[writeBuffer][buf++] = 0x87;										// MIDI status 8, MIDI channel 7  (KU)
+	buff[writeBuffer][buf++] = vel >> 7;									// first 7 bits
+	buff[writeBuffer][buf++] = vel & 0x7F;									// second 7 bits
 
 	if (buf == BUFFER_SIZE)
 	{
@@ -653,11 +625,21 @@ void MSG_ApplyPreloadedValues(void)
 }
 
 
-/******************************************************************************
-	@brief  Is used by poly.c to set the number of unison voices
-*******************************************************************************/
+/*****************************************************************************
+* @brief	MSG_Reset -
+*
+******************************************************************************/
 
-void MSG_SetUnisonVoices(uint32_t uv)
+void MSG_Reset(uint32_t mode)
 {
-	unisonVoices = uv;
+	buff[writeBuffer][buf++] = 0x0A;										// MIDI status A
+	buff[writeBuffer][buf++] = 0xA7;										// MIDI status A, MIDI channel 7  (RST)
+	buff[writeBuffer][buf++] = mode >> 7;									// first 7 bits
+	buff[writeBuffer][buf++] = mode & 0x7F;									// second 7 bits
+
+	if (buf == BUFFER_SIZE)
+	{
+		MSG_SendMidiBuffer();
+	}
 }
+

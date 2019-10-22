@@ -36,7 +36,6 @@ void MSG_SendMidiBuffer(void);
 
 void MSG_SelectVoice(uint32_t v);
 void MSG_SelectMultipleVoices(uint32_t v_last);
-void MSG_SelectVoiceBlock(uint32_t v_first);
 void MSG_SelectAllVoices(void);
 void MSG_AddVoice(uint32_t v);
 
@@ -50,10 +49,11 @@ void MSG_SetTime(uint32_t t);
 void MSG_SetDestination(uint32_t d);
 void MSG_SetDestinationSigned(int32_t d);
 
-void MSG_KeyDown(uint32_t v);
-void MSG_KeyUp(uint32_t v);
+void MSG_KeyVoice(uint32_t steal, uint32_t voice);
+void MSG_KeyDown(uint32_t vel);
+void MSG_KeyUp(uint32_t vel);
 
-void MSG_Flush(void);
+void MSG_Reset(uint32_t mode);
 
 void MSG_KeyPreload(void);							// enables the Preload/List mode for KeyDown and KeyUp
 void MSG_DisablePreload(void);						// disables the Preload mode: a D message immediately starts a transition
@@ -61,8 +61,6 @@ void MSG_EnablePreload(void);						// enables the Preload mode: the transition w
 void MSG_ApplyPreloadedValues(void);				// applies preloaded D values and starts the transition(s)
 
 void MSG_RefreshAddresses(void);						// the following messages will include voice and parameter addresses
-
-void MSG_SetUnisonVoices(uint32_t uv);					// called from poly.c
 
 
 #endif /* NL_TCD_MSG_H_ */

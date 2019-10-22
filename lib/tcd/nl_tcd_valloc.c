@@ -152,8 +152,6 @@ void VALLOC_Process(void)
 				oldestAssigned = nextAssigned[v];   			// the second oldest assigned voice now becomes the oldest
 			}
 
-			/// POLY_SetKeyPos(v, k);
-			/// ENV_Start(v, keyEvent[i].timeInUs);
 			POLY_KeyDown(v, k, keyEvent[i].timeInUs);
 			
 			nextAssigned[youngestAssigned] = v;				// the last youngest assigned voice gets the pointer to this voice
